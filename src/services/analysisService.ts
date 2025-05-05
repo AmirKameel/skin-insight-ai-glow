@@ -1,7 +1,7 @@
 
 import { SkinAnalysis } from '@/types';
 import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/contexts/AuthContext';
+import { Json } from '@/integrations/supabase/types';
 
 // In a real app, this would call Claude 3.7 API through a backend service
 const analyzeSkinImage = async (imageFile: File): Promise<SkinAnalysis> => {
@@ -124,10 +124,15 @@ const getAnalysisById = async (analysisId: string): Promise<SkinAnalysis | null>
       id: data.id,
       userId: data.user_id,
       imageUrl: data.image_url,
-      aiAnalysisResults: data.ai_analysis_results,
-      detectedIssues: data.detected_issues,
-      severityScores: data.severity_scores,
-      recommendations: data.recommendations,
+      // Cast the JSON data to the correct types
+      aiAnalysisResults: data.ai_analysis_results as Record<string, any>,
+      detectedIssues: data.detected_issues as string[],
+      severityScores: data.severity_scores as Record<string, number>,
+      recommendations: data.recommendations as {
+        products?: string[];
+        routines?: string[];
+        tips?: string[];
+      },
       createdAt: new Date(data.created_at)
     };
   } catch (error) {
@@ -151,10 +156,15 @@ const getUserAnalyses = async (userId: string): Promise<SkinAnalysis[]> => {
       id: item.id,
       userId: item.user_id,
       imageUrl: item.image_url,
-      aiAnalysisResults: item.ai_analysis_results,
-      detectedIssues: item.detected_issues,
-      severityScores: item.severity_scores,
-      recommendations: item.recommendations,
+      // Cast the JSON data to the correct types
+      aiAnalysisResults: item.ai_analysis_results as Record<string, any>,
+      detectedIssues: item.detected_issues as string[],
+      severityScores: item.severity_scores as Record<string, number>,
+      recommendations: item.recommendations as {
+        products?: string[];
+        routines?: string[];
+        tips?: string[];
+      },
       createdAt: new Date(item.created_at)
     }));
   } catch (error) {
