@@ -9,7 +9,8 @@ import {
   User, 
   Menu, 
   X,
-  Settings 
+  Settings,
+  LucideProps
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { NavigationItem } from '@/types';
@@ -36,7 +37,7 @@ const Navigation = () => {
           className="bg-white shadow-md"
           onClick={() => setIsOpen(!isOpen)}
         >
-          {isOpen ? <X size={20} /> : <Menu size={20} />}
+          {isOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
         </Button>
       </div>
 
@@ -49,7 +50,7 @@ const Navigation = () => {
                 SkinInsight
               </span>
               <Button variant="ghost" size="icon" onClick={() => setIsOpen(false)}>
-                <X size={20} />
+                <X className="h-5 w-5" />
               </Button>
             </div>
             <ul className="space-y-4">
@@ -60,7 +61,7 @@ const Navigation = () => {
                     className="flex items-center gap-3 p-3 rounded-md hover:bg-skin-blue/30 transition-all"
                     onClick={() => setIsOpen(false)}
                   >
-                    {item.icon && <item.icon size={20} />}
+                    {item.icon && <item.icon className="h-5 w-5" />}
                     <span>{item.name}</span>
                   </Link>
                 </li>
@@ -84,7 +85,7 @@ const Navigation = () => {
                 to={item.href}
                 className="flex items-center gap-3 p-3 rounded-md hover:bg-skin-blue/30 transition-all"
               >
-                {item.icon && <item.icon size={20} />}
+                {item.icon && <item.icon className="h-5 w-5" />}
                 <span>{item.name}</span>
               </Link>
             </li>

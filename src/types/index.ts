@@ -59,6 +59,6 @@ export interface SkinAnalysis {
 export interface NavigationItem {
   name: string;
   href: string;
-  icon?: React.ComponentType<React.SVGProps<SVGSVGElement>>;
+  icon?: React.ComponentType<React.SVGAttributes<SVGSVGElement>>;
   current?: boolean;
 }
