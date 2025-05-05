@@ -6,10 +6,16 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Calendar, Camera, Clock, ArrowRight } from 'lucide-react';
+import { getUserAnalyses } from '@/services/analysisService';
+import { SkinAnalysis } from '@/types';
+import { useToast } from '@/hooks/use-toast';
 
 const Dashboard = () => {
   const { user } = useAuth();
   const [greeting, setGreeting] = useState('');
+  const [recentAnalyses, setRecentAnalyses] = useState<SkinAnalysis[]>([]);
+  const [loading, setLoading] = useState(true);
+  const { toast } = useToast();
 
   useEffect(() => {
     const hour = new Date().getHours();
@@ -17,13 +23,31 @@ const Dashboard = () => {
     else if (hour < 18) setGreeting('Good afternoon');
     else setGreeting('Good evening');
   }, []);
+  
+  useEffect(() => {
+    const fetchUserAnalyses = async () => {
+      if (!user) return;
+      
+      try {
+        setLoading(true);
+        const analyses = await getUserAnalyses(user.id);
+        setRecentAnalyses(analyses);
+      } catch (error) {
+        console.error('Error fetching analyses:', error);
+        toast({
+          variant: "destructive",
+          title: "Error fetching analyses",
+          description: "We couldn't load your recent skin analyses.",
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchUserAnalyses();
+  }, [user, toast]);
 
   // Mock data - would come from backend in a real app
-  const recentAnalyses = [
-    { id: '1', date: '2025-05-01', imageUrl: '/placeholder.svg' },
-    { id: '2', date: '2025-04-25', imageUrl: '/placeholder.svg' },
-  ];
-
   const upcomingRoutines = [
     { id: '1', name: 'Morning Routine', time: '8:00 AM' },
     { id: '2', name: 'Evening Routine', time: '8:00 PM' },
@@ -35,6 +59,14 @@ const Dashboard = () => {
     { name: 'Acne', score: 85 },
     { name: 'Redness', score: 75 },
   ];
+
+  const formatDate = (date: Date) => {
+    return new Intl.DateTimeFormat('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    }).format(date);
+  };
 
   return (
     <div className="container mx-auto py-6 px-4 md:px-6 md:ml-64">
@@ -163,42 +195,49 @@ const Dashboard = () => {
           </div>
 
           <TabsContent value="analyses">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {recentAnalyses.map((analysis) => (
-                <Link 
-                  key={analysis.id} 
-                  to={`/analysis/${analysis.id}`} 
-                  className="block group"
-                >
-                  <div className="bg-white rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow p-4">
-                    <div className="aspect-square relative rounded-md overflow-hidden mb-3">
-                      <img 
-                        src={analysis.imageUrl} 
-                        alt="Analysis" 
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform"
-                      />
+            {loading ? (
+              <div className="flex justify-center items-center py-12">
+                <div className="h-6 w-6 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
+                <span className="ml-3">Loading analyses...</span>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {recentAnalyses.map((analysis) => (
+                  <Link 
+                    key={analysis.id} 
+                    to={`/analysis/${analysis.id}`} 
+                    className="block group"
+                  >
+                    <div className="bg-white rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow p-4">
+                      <div className="aspect-square relative rounded-md overflow-hidden mb-3">
+                        <img 
+                          src={analysis.imageUrl} 
+                          alt="Analysis" 
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                        />
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="font-medium">Skin Analysis</span>
+                        <span className="text-sm text-gray-500">
+                          {formatDate(analysis.createdAt)}
+                        </span>
+                      </div>
                     </div>
-                    <div className="flex justify-between items-center">
-                      <span className="font-medium">Analysis</span>
-                      <span className="text-sm text-gray-500">
-                        {new Date(analysis.date).toLocaleDateString()}
-                      </span>
+                  </Link>
+                ))}
+
+                <Link to="/analysis" className="block">
+                  <div className="bg-white rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow border-2 border-dashed border-gray-200 p-4 h-full flex items-center justify-center">
+                    <div className="text-center">
+                      <div className="w-12 h-12 rounded-full bg-skin-blue/20 flex items-center justify-center mx-auto mb-3">
+                        <Camera size={20} className="text-primary" />
+                      </div>
+                      <span className="font-medium text-primary">New Analysis</span>
                     </div>
                   </div>
                 </Link>
-              ))}
-
-              <Link to="/analysis" className="block">
-                <div className="bg-white rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow border-2 border-dashed border-gray-200 p-4 h-full flex items-center justify-center">
-                  <div className="text-center">
-                    <div className="w-12 h-12 rounded-full bg-skin-blue/20 flex items-center justify-center mx-auto mb-3">
-                      <Camera size={20} className="text-primary" />
-                    </div>
-                    <span className="font-medium text-primary">New Analysis</span>
-                  </div>
-                </div>
-              </Link>
-            </div>
+              </div>
+            )}
           </TabsContent>
 
           <TabsContent value="journal">

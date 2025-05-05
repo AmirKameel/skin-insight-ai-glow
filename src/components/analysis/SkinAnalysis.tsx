@@ -5,9 +5,10 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Loader2, Upload, Camera, AlertTriangle } from 'lucide-react';
-import { analyzeSkinImage } from '@/services/analysisService';
+import { analyzeSkinImage, saveAnalysisToSupabase } from '@/services/analysisService';
 import { SkinAnalysis as SkinAnalysisType } from '@/types';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/contexts/AuthContext';
 
 const SkinAnalysis = () => {
   const [file, setFile] = useState<File | null>(null);
@@ -16,6 +17,7 @@ const SkinAnalysis = () => {
   const [analysisResult, setAnalysisResult] = useState<SkinAnalysisType | null>(null);
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { user } = useAuth();
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = event.target.files?.[0];
@@ -73,10 +75,23 @@ const SkinAnalysis = () => {
       return;
     }
     
+    if (!user) {
+      toast({
+        variant: "destructive",
+        title: "Authentication required",
+        description: "Please log in to analyze your skin",
+      });
+      return;
+    }
+    
     try {
       setIsAnalyzing(true);
       const result = await analyzeSkinImage(file);
-      setAnalysisResult(result);
+      
+      // Save to Supabase
+      const savedAnalysis = await saveAnalysisToSupabase(result, user.id, file);
+      setAnalysisResult(savedAnalysis);
+      
       toast({
         title: "Analysis complete",
         description: "Your skin analysis is ready to view",
@@ -95,9 +110,7 @@ const SkinAnalysis = () => {
 
   const handleViewResults = () => {
     if (analysisResult) {
-      // In a real app, we would navigate to a detailed results page
-      // For now, we'll just go back to the dashboard
-      navigate('/dashboard');
+      navigate(`/analysis/${analysisResult.id}`);
     }
   };
 

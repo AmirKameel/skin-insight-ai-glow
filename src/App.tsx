@@ -11,6 +11,7 @@ import LoginForm from "@/components/auth/LoginForm";
 import RegisterForm from "@/components/auth/RegisterForm";
 import Dashboard from "@/components/dashboard/Dashboard";
 import SkinAnalysis from "@/components/analysis/SkinAnalysis";
+import AnalysisDetail from "@/components/analysis/AnalysisDetail";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -45,6 +46,12 @@ const App = () => {
                 <>
                   <Navigation />
                   <SkinAnalysis />
+                </>
+              } />
+              <Route path="/analysis/:id" element={
+                <>
+                  <Navigation />
+                  <AnalysisDetail />
                 </>
               } />
               <Route path="*" element={<NotFound />} />
