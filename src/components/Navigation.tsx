@@ -11,6 +11,7 @@ import {
   X,
   Settings,
   LogOut,
+  Star,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
@@ -92,6 +93,19 @@ const Navigation = () => {
                 </li>
               ))}
               
+              <li>
+                <Link
+                  to="/upgrade"
+                  className={`flex items-center gap-3 p-3 rounded-md text-amber-600 hover:bg-amber-50 transition-all ${
+                    location.pathname === '/upgrade' ? 'bg-amber-50 font-semibold' : ''
+                  }`}
+                  onClick={() => setIsOpen(false)}
+                >
+                  <Star className="h-5 w-5" />
+                  <span>Upgrade to Premium</span>
+                </Link>
+              </li>
+              
               <li className="pt-4 border-t border-gray-200">
                 <button
                   onClick={handleLogout}
@@ -127,6 +141,18 @@ const Navigation = () => {
               </Link>
             </li>
           ))}
+          
+          <li>
+            <Link
+              to="/upgrade"
+              className={`flex items-center gap-3 p-3 rounded-md text-amber-600 hover:bg-amber-50 transition-all ${
+                location.pathname === '/upgrade' ? 'bg-amber-50 font-semibold' : ''
+              }`}
+            >
+              <Star className="h-5 w-5" />
+              <span>Upgrade to Premium</span>
+            </Link>
+          </li>
           
           <li className="absolute bottom-6 left-6 right-6">
             <button

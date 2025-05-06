@@ -13,6 +13,7 @@ import Dashboard from "@/components/dashboard/Dashboard";
 import SkinAnalysis from "@/components/analysis/SkinAnalysis";
 import AnalysisDetail from "@/components/analysis/AnalysisDetail";
 import NotFound from "./pages/NotFound";
+import Upgrade from "./pages/Upgrade";
 import { useAuth } from "@/contexts/AuthContext";
 
 const queryClient = new QueryClient();
@@ -96,6 +97,13 @@ const AppRoutes = () => {
         <ProtectedRoute>
           <AuthenticatedLayout>
             <AnalysisDetail />
+          </AuthenticatedLayout>
+        </ProtectedRoute>
+      } />
+      <Route path="/upgrade" element={
+        <ProtectedRoute>
+          <AuthenticatedLayout>
+            <Upgrade />
           </AuthenticatedLayout>
         </ProtectedRoute>
       } />

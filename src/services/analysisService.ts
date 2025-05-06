@@ -67,7 +67,7 @@ const saveAnalysisToSupabase = async (analysis: SkinAnalysis, userId: string, im
     // First, upload the image to Supabase Storage
     const timestamp = Date.now();
     const fileExt = imageFile.name.split('.').pop();
-    const filePath = `skin-analyses/${userId}/${timestamp}.${fileExt}`;
+    const filePath = `${userId}/${timestamp}.${fileExt}`;
     
     const { error: uploadError, data: uploadData } = await supabase.storage
       .from('skin-images')
@@ -190,4 +190,61 @@ const getUserAnalyses = async (userId: string): Promise<SkinAnalysis[]> => {
   }
 };
 
-export { analyzeSkinImage, saveAnalysisToSupabase, getAnalysisById, getUserAnalyses };
+// New function: Get premium skincare product recommendations
+const getPremiumRecommendations = async (analysisId: string): Promise<any> => {
+  // In a real app, this would call a premium API or service
+  // For now, we'll return mock premium recommendations
+  return {
+    premiumProducts: [
+      {
+        name: "Advanced Hydration Serum",
+        brand: "SkinElite",
+        price: "$89.99",
+        description: "Pharmaceutical-grade hyaluronic acid complex with ceramides for deep hydration",
+        affiliateLink: "https://example.com/product1"
+      },
+      {
+        name: "Vitamin C Brightening Treatment",
+        brand: "DermScience",
+        price: "$115.00",
+        description: "15% stabilized vitamin C with ferulic acid and vitamin E for advanced brightening",
+        affiliateLink: "https://example.com/product2"
+      },
+      {
+        name: "Retinol Renewal Night Cream",
+        brand: "ClinicalSkin",
+        price: "$95.00",
+        description: "Encapsulated retinol with peptide complex for overnight skin renewal",
+        affiliateLink: "https://example.com/product3"
+      }
+    ],
+    customRoutine: {
+      morning: [
+        "Gentle cleanser",
+        "Antioxidant serum",
+        "Hydrating moisturizer",
+        "Broad-spectrum SPF"
+      ],
+      evening: [
+        "Oil-based cleanser",
+        "Water-based cleanser",
+        "Treatment serum",
+        "Moisturizer",
+        "Targeted treatment"
+      ],
+      weekly: [
+        "Gentle exfoliation",
+        "Hydrating mask",
+        "Detoxifying mask"
+      ]
+    }
+  };
+};
+
+export { 
+  analyzeSkinImage, 
+  saveAnalysisToSupabase, 
+  getAnalysisById, 
+  getUserAnalyses, 
+  getPremiumRecommendations 
+};
