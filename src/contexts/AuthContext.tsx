@@ -1,79 +1,139 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { User } from '@/types';
+import { User, Session } from '@supabase/supabase-js';
+import { supabase } from '@/integrations/supabase/client';
+import { User as AppUser } from '@/types';
+import { useToast } from '@/hooks/use-toast';
 
 interface AuthContextType {
-  user: User | null;
+  user: AppUser | null;
+  session: Session | null;
   loading: boolean;
   error: string | null;
   login: (email: string, password: string) => Promise<void>;
-  register: (email: string, password: string) => Promise<void>;
+  register: (email: string, password: string, firstName?: string, lastName?: string) => Promise<void>;
   logout: () => Promise<void>;
-  setUser: (user: User | null) => void;
+  setUser: (user: AppUser | null) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<AppUser | null>(null);
+  const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  const { toast } = useToast();
 
   useEffect(() => {
-    // Check local storage for existing session
-    const storedUser = localStorage.getItem('skininsight_user');
-    if (storedUser) {
-      setUser(JSON.parse(storedUser));
-    }
-    setLoading(false);
+    // Set up auth state listener first
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, currentSession) => {
+        setSession(currentSession);
+        
+        if (currentSession?.user) {
+          // Convert Supabase user to our app user
+          const appUser: AppUser = {
+            id: currentSession.user.id,
+            email: currentSession.user.email || '',
+            firstName: currentSession.user.user_metadata.firstName,
+            lastName: currentSession.user.user_metadata.lastName,
+            createdAt: new Date(currentSession.user.created_at),
+            updatedAt: new Date(),
+            subscriptionTier: 'free',
+            subscriptionStatus: 'active'
+          };
+          setUser(appUser);
+        } else {
+          setUser(null);
+        }
+      }
+    );
+
+    // Then check for existing session
+    supabase.auth.getSession().then(({ data: { session: currentSession } }) => {
+      setSession(currentSession);
+      
+      if (currentSession?.user) {
+        // Convert Supabase user to our app user
+        const appUser: AppUser = {
+          id: currentSession.user.id,
+          email: currentSession.user.email || '',
+          firstName: currentSession.user.user_metadata.firstName,
+          lastName: currentSession.user.user_metadata.lastName,
+          createdAt: new Date(currentSession.user.created_at),
+          updatedAt: new Date(),
+          subscriptionTier: 'free',
+          subscriptionStatus: 'active'
+        };
+        setUser(appUser);
+      }
+      
+      setLoading(false);
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
   }, []);
 
-  // In a real app, these would communicate with Supabase Auth
   const login = async (email: string, password: string) => {
     try {
       setLoading(true);
-      // Mock user for now - would be replaced with Supabase Auth call
-      const mockUser: User = {
-        id: '123456',
-        email,
-        firstName: 'Demo',
-        lastName: 'User',
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        subscriptionTier: 'free',
-        subscriptionStatus: 'active'
-      };
-      
-      setUser(mockUser);
-      localStorage.setItem('skininsight_user', JSON.stringify(mockUser));
       setError(null);
-    } catch (err) {
-      setError('Login failed. Please check your credentials.');
-      console.error(err);
+      
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email,
+        password
+      });
+      
+      if (signInError) throw signInError;
+      
+    } catch (err: any) {
+      setError(err.message || 'Login failed. Please check your credentials.');
+      toast({
+        variant: "destructive",
+        title: "Login failed",
+        description: err.message || "Please check your credentials and try again.",
+      });
+      throw err;
     } finally {
       setLoading(false);
     }
   };
 
-  const register = async (email: string, password: string) => {
+  const register = async (email: string, password: string, firstName?: string, lastName?: string) => {
     try {
       setLoading(true);
-      // Mock user for now - would be replaced with Supabase Auth call
-      const mockUser: User = {
-        id: '123456',
-        email,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        subscriptionTier: 'free',
-        subscriptionStatus: 'trial'
-      };
-      
-      setUser(mockUser);
-      localStorage.setItem('skininsight_user', JSON.stringify(mockUser));
       setError(null);
-    } catch (err) {
-      setError('Registration failed. Please try again.');
-      console.error(err);
+      
+      const { error: signUpError } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            firstName,
+            lastName,
+          },
+          emailRedirectTo: window.location.origin + '/login',
+        }
+      });
+      
+      if (signUpError) throw signUpError;
+      
+      toast({
+        title: "Registration successful",
+        description: "Please check your email to confirm your account.",
+      });
+      
+    } catch (err: any) {
+      setError(err.message || 'Registration failed. Please try again.');
+      toast({
+        variant: "destructive",
+        title: "Registration failed",
+        description: err.message || "Please try again later.",
+      });
+      throw err;
     } finally {
       setLoading(false);
     }
@@ -82,13 +142,23 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const logout = async () => {
     try {
       setLoading(true);
-      // In a real app, this would call to Supabase Auth logout
-      localStorage.removeItem('skininsight_user');
-      setUser(null);
       setError(null);
-    } catch (err) {
-      setError('Logout failed.');
-      console.error(err);
+      
+      const { error: signOutError } = await supabase.auth.signOut();
+      
+      if (signOutError) throw signOutError;
+      
+      setUser(null);
+      setSession(null);
+      
+    } catch (err: any) {
+      setError(err.message || 'Logout failed.');
+      toast({
+        variant: "destructive",
+        title: "Logout failed",
+        description: err.message || "Please try again later.",
+      });
+      throw err;
     } finally {
       setLoading(false);
     }
@@ -96,7 +166,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   return (
     <AuthContext.Provider
-      value={{ user, loading, error, login, register, logout, setUser }}
+      value={{ user, session, loading, error, login, register, logout, setUser }}
     >
       {children}
     </AuthContext.Provider>

@@ -16,6 +16,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
+import { Loader2 } from 'lucide-react';
 
 const formSchema = z.object({
   firstName: z.string().min(1, 'First name is required'),
@@ -33,6 +34,7 @@ type FormValues = z.infer<typeof formSchema>;
 const RegisterForm = () => {
   const { register, error } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
+  const [registrationSuccess, setRegistrationSuccess] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -50,23 +52,36 @@ const RegisterForm = () => {
   const onSubmit = async (data: FormValues) => {
     try {
       setIsLoading(true);
-      await register(data.email, data.password);
-      toast({
-        title: "Registration successful",
-        description: "Welcome to SkinInsight AI!",
-      });
-      navigate('/onboarding');
+      await register(data.email, data.password, data.firstName, data.lastName);
+      setRegistrationSuccess(true);
+      
+      // Toast notification is already handled in AuthContext
     } catch (err) {
       console.error(err);
-      toast({
-        variant: "destructive",
-        title: "Registration failed",
-        description: error || "Please try again later.",
-      });
+      // Toast notification is already handled in AuthContext
     } finally {
       setIsLoading(false);
     }
   };
+
+  if (registrationSuccess) {
+    return (
+      <div className="max-w-md w-full mx-auto p-8 bg-white rounded-lg shadow-lg text-center">
+        <div className="w-16 h-16 mx-auto bg-green-100 rounded-full flex items-center justify-center mb-6">
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+          </svg>
+        </div>
+        <h2 className="text-2xl font-bold text-gray-800 mb-4">Registration Successful!</h2>
+        <p className="text-gray-600 mb-6">
+          Please check your email inbox to confirm your account. After confirming, you'll be able to sign in.
+        </p>
+        <Button onClick={() => navigate('/login')} variant="outline" className="mx-auto">
+          Go to Login
+        </Button>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-md w-full mx-auto p-8 bg-white rounded-lg shadow-lg">
@@ -148,6 +163,12 @@ const RegisterForm = () => {
               </FormItem>
             )}
           />
+          
+          {error && (
+            <div className="p-3 bg-red-50 border border-red-200 text-red-600 rounded-md text-sm">
+              {error}
+            </div>
+          )}
 
           <div className="text-sm text-gray-600 mt-4">
             By creating an account, you agree to our{' '}
@@ -162,7 +183,14 @@ const RegisterForm = () => {
           </div>
 
           <Button type="submit" className="w-full mt-4" disabled={isLoading}>
-            {isLoading ? 'Creating account...' : 'Create Account'}
+            {isLoading ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" /> 
+                Creating account...
+              </>
+            ) : (
+              'Create Account'
+            )}
           </Button>
         </form>
       </Form>

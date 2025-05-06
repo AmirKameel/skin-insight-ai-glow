@@ -1,6 +1,6 @@
 
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { 
   Home, 
   Camera, 
@@ -10,22 +10,45 @@ import {
   Menu, 
   X,
   Settings,
-  LucideProps
+  LogOut,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { NavigationItem } from '@/types';
+import { useAuth } from '@/contexts/AuthContext';
+import { useToast } from '@/hooks/use-toast';
 
 const Navigation = () => {
   const [isOpen, setIsOpen] = useState(false);
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { toast } = useToast();
 
-  const navigation: NavigationItem[] = [
-    { name: 'Dashboard', href: '/dashboard', icon: Home, current: false },
-    { name: 'Skin Analysis', href: '/analysis', icon: Camera, current: false },
-    { name: 'Routines', href: '/routines', icon: Calendar, current: false },
-    { name: 'Knowledge', href: '/knowledge', icon: BookOpen, current: false },
-    { name: 'Profile', href: '/profile', icon: User, current: false },
-    { name: 'Settings', href: '/settings', icon: Settings, current: false },
+  const navigation = [
+    { name: 'Dashboard', href: '/dashboard', icon: Home, current: location.pathname === '/dashboard' },
+    { name: 'Skin Analysis', href: '/analysis', icon: Camera, current: location.pathname === '/analysis' || location.pathname.startsWith('/analysis/') },
+    { name: 'Routines', href: '/routines', icon: Calendar, current: location.pathname === '/routines' },
+    { name: 'Knowledge', href: '/knowledge', icon: BookOpen, current: location.pathname === '/knowledge' },
+    { name: 'Profile', href: '/profile', icon: User, current: location.pathname === '/profile' },
+    { name: 'Settings', href: '/settings', icon: Settings, current: location.pathname === '/settings' },
   ];
+
+  const handleLogout = async () => {
+    try {
+      await logout();
+      toast({
+        title: "Logged out successfully",
+        description: "You have been logged out of your account",
+      });
+      navigate('/');
+    } catch (error) {
+      console.error('Logout error:', error);
+    }
+  };
+
+  // Don't show navigation if not logged in
+  if (!user) {
+    return null;
+  }
 
   return (
     <>
@@ -58,7 +81,9 @@ const Navigation = () => {
                 <li key={item.name}>
                   <Link
                     to={item.href}
-                    className="flex items-center gap-3 p-3 rounded-md hover:bg-skin-blue/30 transition-all"
+                    className={`flex items-center gap-3 p-3 rounded-md hover:bg-skin-blue/30 transition-all ${
+                      item.current ? 'bg-skin-blue/20 font-semibold' : ''
+                    }`}
                     onClick={() => setIsOpen(false)}
                   >
                     {item.icon && <item.icon className="h-5 w-5" />}
@@ -66,6 +91,16 @@ const Navigation = () => {
                   </Link>
                 </li>
               ))}
+              
+              <li className="pt-4 border-t border-gray-200">
+                <button
+                  onClick={handleLogout}
+                  className="w-full flex items-center gap-3 p-3 rounded-md text-rose-600 hover:bg-rose-50 transition-all"
+                >
+                  <LogOut className="h-5 w-5" />
+                  <span>Sign Out</span>
+                </button>
+              </li>
             </ul>
           </nav>
         </div>
@@ -83,13 +118,25 @@ const Navigation = () => {
             <li key={item.name}>
               <Link
                 to={item.href}
-                className="flex items-center gap-3 p-3 rounded-md hover:bg-skin-blue/30 transition-all"
+                className={`flex items-center gap-3 p-3 rounded-md hover:bg-skin-blue/30 transition-all ${
+                  item.current ? 'bg-skin-blue/20 font-semibold' : ''
+                }`}
               >
                 {item.icon && <item.icon className="h-5 w-5" />}
                 <span>{item.name}</span>
               </Link>
             </li>
           ))}
+          
+          <li className="absolute bottom-6 left-6 right-6">
+            <button
+              onClick={handleLogout}
+              className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-rose-50 text-rose-600 rounded-lg hover:bg-rose-100 transition-colors"
+            >
+              <LogOut className="h-5 w-5" />
+              <span>Sign Out</span>
+            </button>
+          </li>
         </ul>
       </nav>
     </>

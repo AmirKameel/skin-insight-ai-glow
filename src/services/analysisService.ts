@@ -62,6 +62,8 @@ const analyzeSkinImage = async (imageFile: File): Promise<SkinAnalysis> => {
 // Save analysis to Supabase
 const saveAnalysisToSupabase = async (analysis: SkinAnalysis, userId: string, imageFile: File): Promise<SkinAnalysis> => {
   try {
+    console.log('Saving analysis to Supabase for user:', userId);
+    
     // First, upload the image to Supabase Storage
     const timestamp = Date.now();
     const fileExt = imageFile.name.split('.').pop();
@@ -69,14 +71,24 @@ const saveAnalysisToSupabase = async (analysis: SkinAnalysis, userId: string, im
     
     const { error: uploadError, data: uploadData } = await supabase.storage
       .from('skin-images')
-      .upload(filePath, imageFile);
+      .upload(filePath, imageFile, {
+        cacheControl: '3600',
+        upsert: false
+      });
       
-    if (uploadError) throw uploadError;
+    if (uploadError) {
+      console.error('Error uploading image:', uploadError);
+      throw uploadError;
+    }
+    
+    console.log('Image uploaded successfully:', uploadData);
     
     // Get the public URL for the uploaded image
     const { data: { publicUrl } } = supabase.storage
       .from('skin-images')
       .getPublicUrl(filePath);
+      
+    console.log('Public URL:', publicUrl);
       
     // Save analysis data to the database
     const { error: insertError, data: insertedAnalysis } = await supabase
@@ -92,7 +104,12 @@ const saveAnalysisToSupabase = async (analysis: SkinAnalysis, userId: string, im
       .select('*')
       .single();
       
-    if (insertError) throw insertError;
+    if (insertError) {
+      console.error('Error inserting analysis:', insertError);
+      throw insertError;
+    }
+    
+    console.log('Analysis saved successfully:', insertedAnalysis);
     
     // Return the analysis with the Supabase data
     return {

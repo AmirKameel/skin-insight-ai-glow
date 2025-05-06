@@ -16,6 +16,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
+import { Loader2 } from 'lucide-react';
 
 const formSchema = z.object({
   email: z.string().email('Please enter a valid email'),
@@ -47,13 +48,9 @@ const LoginForm = () => {
         description: "Welcome back to SkinInsight AI!",
       });
       navigate('/dashboard');
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
-      toast({
-        variant: "destructive",
-        title: "Login failed",
-        description: error || "Please check your credentials and try again.",
-      });
+      // Toast notification is already handled in AuthContext
     } finally {
       setIsLoading(false);
     }
@@ -103,10 +100,23 @@ const LoginForm = () => {
           </div>
 
           <Button type="submit" className="w-full" disabled={isLoading}>
-            {isLoading ? 'Signing in...' : 'Sign In'}
+            {isLoading ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" /> 
+                Signing in...
+              </>
+            ) : (
+              'Sign In'
+            )}
           </Button>
         </form>
       </Form>
+      
+      {error && (
+        <div className="mt-4 p-3 bg-red-50 border border-red-200 text-red-600 rounded-md text-sm">
+          {error}
+        </div>
+      )}
 
       <div className="mt-6 text-center text-sm">
         <span className="text-gray-600">Don't have an account?</span>{' '}

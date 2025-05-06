@@ -1,13 +1,45 @@
-
 import { Button } from '@/components/ui/button';
-import { Link } from 'react-router-dom';
-import { ArrowRight, Camera, Calendar, Activity, Shield } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
+import { ArrowRight, Camera, Calendar, Activity, Shield, LogIn } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
 
 const LandingPage = () => {
+  const { user } = useAuth();
+  const navigate = useNavigate();
+
   return (
     <div className="w-full">
+      {/* Header */}
+      <header className="w-full py-4 px-6 bg-white shadow-sm fixed top-0 left-0 z-20">
+        <div className="container mx-auto flex items-center justify-between">
+          <div className="flex items-center">
+            <span className="text-2xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
+              SkinInsight AI
+            </span>
+          </div>
+          <div className="flex items-center gap-4">
+            {user ? (
+              <Button onClick={() => navigate('/dashboard')}>
+                Go to Dashboard
+              </Button>
+            ) : (
+              <>
+                <Button variant="ghost" asChild>
+                  <Link to="/login" className="flex items-center gap-2">
+                    <LogIn className="h-4 w-4" /> Sign In
+                  </Link>
+                </Button>
+                <Button asChild>
+                  <Link to="/register">Sign Up</Link>
+                </Button>
+              </>
+            )}
+          </div>
+        </div>
+      </header>
+
       {/* Hero section */}
-      <section className="min-h-screen flex flex-col justify-center relative overflow-hidden">
+      <section className="min-h-screen flex flex-col justify-center relative overflow-hidden pt-16">
         <div className="absolute inset-0 skin-gradient opacity-30"></div>
         <div className="container mx-auto px-6 py-12 z-10">
           <div className="max-w-4xl mx-auto text-center">
@@ -20,8 +52,8 @@ const LandingPage = () => {
               Personalized skincare powered by AI. Upload a photo and receive custom recommendations for healthier, more radiant skin.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center animate-fade-in" style={{ animationDelay: '0.4s' }}>
-              <Button asChild className="text-lg px-8 py-6">
-                <Link to="/register">Get Started</Link>
+              <Button asChild size="lg" className="text-lg px-8 py-6">
+                <Link to={user ? "/dashboard" : "/register"}>Get Started</Link>
               </Button>
               <Button asChild variant="outline" className="text-lg px-8 py-6">
                 <Link to="/learn-more">Learn More</Link>
@@ -141,7 +173,7 @@ const LandingPage = () => {
             Join thousands of users who have discovered the power of AI-driven skincare analysis and personalization.
           </p>
           <Button asChild size="lg" className="text-lg px-8 py-6">
-            <Link to="/register" className="flex items-center gap-2">
+            <Link to={user ? "/dashboard" : "/register"} className="flex items-center gap-2">
               Get Started Now <ArrowRight size={20} />
             </Link>
           </Button>
