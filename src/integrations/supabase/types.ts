@@ -524,6 +524,42 @@ export type Database = {
           },
         ]
       }
+      user_subscriptions: {
+        Row: {
+          created_at: string | null
+          end_date: string | null
+          features: Json | null
+          id: string
+          is_active: boolean
+          start_date: string | null
+          subscription_tier: string
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          end_date?: string | null
+          features?: Json | null
+          id?: string
+          is_active?: boolean
+          start_date?: string | null
+          subscription_tier?: string
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          end_date?: string | null
+          features?: Json | null
+          id?: string
+          is_active?: boolean
+          start_date?: string | null
+          subscription_tier?: string
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       users: {
         Row: {
           auth_id: string | null
@@ -571,7 +607,20 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      insert_treatment_tracking: {
+        Args: {
+          p_analysis_id: string
+          p_solution_index: number
+          p_start_date: string
+          p_status: string
+          p_progress: Json
+        }
+        Returns: string
+      }
+      is_premium_user: {
+        Args: { user_uuid: string }
+        Returns: boolean
+      }
     }
     Enums: {
       [_ in never]: never

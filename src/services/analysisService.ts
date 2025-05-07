@@ -190,93 +190,162 @@ const getUserAnalyses = async (userId: string): Promise<SkinAnalysis[]> => {
   }
 };
 
+// Check if a user is premium
+const checkUserPremiumStatus = async (userId: string): Promise<boolean> => {
+  try {
+    const { data, error } = await supabase.rpc('is_premium_user', { user_uuid: userId });
+    
+    if (error) {
+      console.error('Error checking premium status:', error);
+      return false;
+    }
+    
+    return data || false;
+  } catch (error) {
+    console.error('Error checking premium status:', error);
+    return false;
+  }
+};
+
 // Get premium skincare product recommendations
 const getPremiumRecommendations = async (analysisId: string): Promise<any> => {
-  // In a real app, this would call a premium API or service
-  // For now, we'll return mock premium recommendations
-  return {
-    premiumProducts: [
-      {
-        name: "Advanced Hydration Serum",
-        brand: "SkinElite",
-        price: "$89.99",
-        description: "Pharmaceutical-grade hyaluronic acid complex with ceramides for deep hydration",
-        affiliateLink: "https://example.com/product1"
-      },
-      {
-        name: "Vitamin C Brightening Treatment",
-        brand: "DermScience",
-        price: "$115.00",
-        description: "15% stabilized vitamin C with ferulic acid and vitamin E for advanced brightening",
-        affiliateLink: "https://example.com/product2"
-      },
-      {
-        name: "Retinol Renewal Night Cream",
-        brand: "ClinicalSkin",
-        price: "$95.00",
-        description: "Encapsulated retinol with peptide complex for overnight skin renewal",
-        affiliateLink: "https://example.com/product3"
-      }
-    ],
-    customRoutine: {
-      morning: [
-        "Gentle cleanser",
-        "Antioxidant serum",
-        "Hydrating moisturizer",
-        "Broad-spectrum SPF"
+  // Check if the analysis exists and get the user id
+  try {
+    const { data: analysis, error: analysisError } = await supabase
+      .from('skin_analyses')
+      .select('user_id')
+      .eq('id', analysisId)
+      .single();
+    
+    if (analysisError || !analysis) {
+      console.error('Error fetching analysis:', analysisError);
+      throw new Error('Analysis not found');
+    }
+    
+    // Check if the user is premium
+    const isPremium = await checkUserPremiumStatus(analysis.user_id);
+    if (!isPremium) {
+      return {
+        isPremium: false,
+        message: 'Please upgrade to premium to access detailed product recommendations'
+      };
+    }
+    
+    // In a real app, this would call a premium API or service
+    // For now, we'll return mock premium recommendations
+    return {
+      isPremium: true,
+      premiumProducts: [
+        {
+          name: "Advanced Hydration Serum",
+          brand: "SkinElite",
+          price: "$89.99",
+          description: "Pharmaceutical-grade hyaluronic acid complex with ceramides for deep hydration",
+          affiliateLink: "https://example.com/product1",
+          ingredients: ["Hyaluronic Acid", "Ceramides", "Niacinamide", "Peptide Complex"],
+          scientificBacking: "Clinically proven to increase hydration by 87% within 24 hours"
+        },
+        {
+          name: "Vitamin C Brightening Treatment",
+          brand: "DermScience",
+          price: "$115.00",
+          description: "15% stabilized vitamin C with ferulic acid and vitamin E for advanced brightening",
+          affiliateLink: "https://example.com/product2",
+          ingredients: ["L-Ascorbic Acid", "Ferulic Acid", "Vitamin E", "Glutathione"],
+          scientificBacking: "Reduces hyperpigmentation by 63% in clinical trials"
+        },
+        {
+          name: "Retinol Renewal Night Cream",
+          brand: "ClinicalSkin",
+          price: "$95.00",
+          description: "Encapsulated retinol with peptide complex for overnight skin renewal",
+          affiliateLink: "https://example.com/product3",
+          ingredients: ["Encapsulated Retinol", "Peptide Complex", "Squalane", "Ceramides"],
+          scientificBacking: "Increases cell turnover by 45% compared to standard retinol formulations"
+        },
+        {
+          name: "AHA/BHA Resurfacing Serum",
+          brand: "PureDerm",
+          price: "$78.00",
+          description: "Blend of glycolic, lactic, and salicylic acids for gentle but effective exfoliation",
+          affiliateLink: "https://example.com/product4",
+          ingredients: ["Glycolic Acid", "Lactic Acid", "Salicylic Acid", "Centella Asiatica"],
+          scientificBacking: "Improves skin texture by 74% after 8 weeks of use"
+        }
       ],
-      evening: [
-        "Oil-based cleanser",
-        "Water-based cleanser",
-        "Treatment serum",
-        "Moisturizer",
-        "Targeted treatment"
+      customRoutine: {
+        morning: [
+          "Gentle pH-balanced cleanser",
+          "Vitamin C serum with ferulic acid",
+          "Hydrating toner with beta-glucan",
+          "Niacinamide and ceramide moisturizer",
+          "Broad-spectrum mineral SPF 50 with iron oxides"
+        ],
+        evening: [
+          "Oil-based cleanser",
+          "Gentle foaming cleanser",
+          "AHA/BHA treatment (3x weekly)",
+          "Retinol serum (alternate nights)",
+          "Advanced peptide moisturizer",
+          "Occlusive barrier repair cream"
+        ],
+        weekly: [
+          "Enzyme exfoliation treatment",
+          "Hydrating mask with hyaluronic acid",
+          "Clay-based detoxifying mask for T-zone"
+        ]
+      },
+      treatmentOptions: [
+        {
+          id: 1,
+          name: "Conservative Treatment",
+          description: "A gentle approach focused on hydration and barrier repair",
+          duration: "6-8 weeks",
+          steps: [
+            "Introduce ceramide-rich moisturizer",
+            "Add hyaluronic acid serum",
+            "Gentle PHA exfoliation once weekly"
+          ],
+          expectedResults: "Improved hydration, reduced sensitivity, better barrier function"
+        },
+        {
+          id: 2,
+          name: "Moderate Treatment",
+          description: "Balanced approach addressing multiple concerns simultaneously",
+          duration: "8-10 weeks",
+          steps: [
+            "Introduce retinol (2x weekly)",
+            "Add niacinamide serum",
+            "Weekly BHA treatment for congestion"
+          ],
+          expectedResults: "Improved texture, reduced breakouts, more even skin tone"
+        },
+        {
+          id: 3,
+          name: "Intensive Treatment",
+          description: "Accelerated approach for those seeking faster results",
+          duration: "10-12 weeks",
+          steps: [
+            "Alternate retinol and AHA treatments",
+            "Vitamin C + Ferulic for morning antioxidant protection",
+            "Intensive hydration and barrier support"
+          ],
+          expectedResults: "Significant improvement in texture, tone, and clarity with possible initial purging"
+        }
       ],
-      weekly: [
-        "Gentle exfoliation",
-        "Hydrating mask",
-        "Detoxifying mask"
-      ]
-    },
-    treatmentOptions: [
-      {
-        id: 1,
-        name: "Conservative Treatment",
-        description: "A gentle approach focused on hydration and barrier repair",
-        duration: "6-8 weeks",
-        steps: [
-          "Introduce ceramide-rich moisturizer",
-          "Add hyaluronic acid serum",
-          "Gentle PHA exfoliation once weekly"
-        ],
-        expectedResults: "Improved hydration, reduced sensitivity, better barrier function"
-      },
-      {
-        id: 2,
-        name: "Moderate Treatment",
-        description: "Balanced approach addressing multiple concerns simultaneously",
-        duration: "8-10 weeks",
-        steps: [
-          "Introduce retinol (2x weekly)",
-          "Add niacinamide serum",
-          "Weekly BHA treatment for congestion"
-        ],
-        expectedResults: "Improved texture, reduced breakouts, more even skin tone"
-      },
-      {
-        id: 3,
-        name: "Intensive Treatment",
-        description: "Accelerated approach for those seeking faster results",
-        duration: "10-12 weeks",
-        steps: [
-          "Alternate retinol and AHA treatments",
-          "Vitamin C + Ferulic for morning antioxidant protection",
-          "Intensive hydration and barrier support"
-        ],
-        expectedResults: "Significant improvement in texture, tone, and clarity with possible initial purging"
+      detailedAnalysis: {
+        skinBarrierHealth: "72% - Mild impairment",
+        inflammationLevel: "Moderate, localized to cheek areas",
+        hydrationStatus: "Below optimal (32% vs target 45-50%)",
+        antioxidantProtection: "Low-moderate, indicating environmental damage",
+        cellTurnoverRate: "Sluggish, approximately 35 days vs optimal 28 days",
+        microbiomeBalance: "Disrupted, with reduced diversity of beneficial bacteria"
       }
-    ]
-  };
+    };
+  } catch (error) {
+    console.error('Error fetching premium recommendations:', error);
+    throw error;
+  }
 };
 
 // Track treatment progress
@@ -293,12 +362,12 @@ const trackTreatmentProgress = async (analysisId: string, selectedSolutionIndex:
       p_solution_index: selectedSolutionIndex,
       p_start_date: new Date().toISOString(),
       p_status: 'active',
-      p_progress: JSON.stringify({
+      p_progress: {
         days_completed: 0,
         total_days: 30,
         checkpoints: [],
         next_checkup: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString() // 7 days from now
-      })
+      }
     });
   } catch (error) {
     console.error('Error tracking treatment progress:', error);
@@ -355,6 +424,252 @@ const getJournalEntries = async (userId: string): Promise<any[]> => {
   }
 };
 
+// AI Doctor chat for personalized advice
+const getAIDoctorResponse = async (
+  userId: string, 
+  message: string, 
+  analysisId?: string
+): Promise<{ 
+  response: string, 
+  recommendations?: any[]
+}> => {
+  try {
+    // Check if premium first
+    const isPremium = await checkUserPremiumStatus(userId);
+    
+    // Get user's latest analysis if analysisId not provided
+    let analysis = null;
+    if (analysisId) {
+      const { data, error } = await supabase
+        .from('skin_analyses')
+        .select('*')
+        .eq('id', analysisId)
+        .single();
+      
+      if (!error && data) {
+        analysis = data;
+      }
+    } else {
+      const { data, error } = await supabase
+        .from('skin_analyses')
+        .select('*')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .single();
+      
+      if (!error && data) {
+        analysis = data;
+      }
+    }
+    
+    // Mock AI doctor response based on user's analysis
+    let response = '';
+    let recommendations = [];
+    
+    if (analysis) {
+      // In a real app, this would call Claude 3.7 API with the analysis and user message
+      // Fake context-aware response
+      if (message.toLowerCase().includes('routine')) {
+        response = `Based on your skin analysis showing ${analysis.detected_issues.join(', ')}, I'd recommend a gentle cleanser, hydrating serum, and SPF 50 for your morning routine. In the evening, consider double cleansing followed by a mild retinol product and barrier-repairing moisturizer.`;
+        
+        recommendations = [
+          { name: "CeraVe Hydrating Cleanser", type: "Cleanser" },
+          { name: "The Ordinary Hyaluronic Acid 2% + B5", type: "Serum" },
+          { name: "La Roche-Posay Anthelios SPF 50", type: "Sunscreen" }
+        ];
+      } else if (message.toLowerCase().includes('acne') || analysis.detected_issues.includes('mild acne')) {
+        response = `For your acne concerns, I notice your skin analysis showed mild acne. I recommend incorporating a salicylic acid cleanser 2-3 times weekly, avoiding comedogenic products, and adding a niacinamide serum to help regulate sebum production.`;
+        
+        recommendations = [
+          { name: "Paula's Choice 2% BHA Liquid Exfoliant", type: "Treatment" },
+          { name: "The Ordinary Niacinamide 10% + Zinc 1%", type: "Serum" }
+        ];
+      } else if (message.toLowerCase().includes('hydration') || analysis.detected_issues.includes('some dryness')) {
+        response = `To address the dryness indicated in your skin analysis, focus on incorporating humectants like hyaluronic acid and glycerin, followed by emollients to lock in moisture. Consider using a hydrating toner and adding a weekly hydrating mask.`;
+        
+        recommendations = [
+          { name: "Hada Labo Gokujyun Premium Hyaluronic Solution", type: "Toner" },
+          { name: "Neutrogena Hydro Boost Gel Cream", type: "Moisturizer" }
+        ];
+      } else {
+        response = `Based on your skin analysis from ${new Date(analysis.created_at).toLocaleDateString()}, I see you have ${analysis.detected_issues.join(', ')}. Your overall skin health score is ${analysis.severity_scores.overallHealth}/10. How can I help you with your specific skin concerns today?`;
+      }
+    } else {
+      response = "I don't have any skin analysis data for you yet. Would you like to complete a skin analysis first? This will help me provide more personalized recommendations for your specific skin concerns.";
+    }
+    
+    // Add premium-specific advice
+    if (isPremium) {
+      response += "\n\nAs a premium member, I recommend checking out our personalized treatment options tailored specifically for your skin profile. You also have access to our advanced product formulation recommendations.";
+    } else {
+      response += "\n\nFor more personalized recommendations and detailed analysis, consider upgrading to our premium plan.";
+    }
+    
+    // Add Arabic translation option mention
+    response += "\n\nNote: You can switch to Arabic language in the settings if you prefer.";
+    
+    // Simulate API delay
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    
+    return {
+      response,
+      recommendations: recommendations.length > 0 ? recommendations : undefined
+    };
+  } catch (error) {
+    console.error('Error getting AI doctor response:', error);
+    return {
+      response: "I'm sorry, I encountered an error processing your request. Please try again later."
+    };
+  }
+};
+
+// Generate personalized routines based on analysis
+const generatePersonalizedRoutines = async (userId: string, analysisId?: string): Promise<{
+  morning: string[];
+  evening: string[];
+  weekly: string[];
+}> => {
+  try {
+    // Get the latest analysis if not specified
+    let analysis = null;
+    if (analysisId) {
+      const { data, error } = await supabase
+        .from('skin_analyses')
+        .select('*')
+        .eq('id', analysisId)
+        .single();
+      
+      if (!error && data) {
+        analysis = data;
+      }
+    } else {
+      const { data, error } = await supabase
+        .from('skin_analyses')
+        .select('*')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .single();
+      
+      if (!error && data) {
+        analysis = data;
+      }
+    }
+    
+    if (!analysis) {
+      // Default routine if no analysis found
+      return {
+        morning: [
+          "Gentle cleanser",
+          "Hydrating toner",
+          "Moisturizer",
+          "Sunscreen SPF 30+"
+        ],
+        evening: [
+          "Makeup remover (if applicable)",
+          "Gentle cleanser",
+          "Hydrating toner",
+          "Moisturizer"
+        ],
+        weekly: [
+          "Gentle exfoliation",
+          "Hydrating mask"
+        ]
+      };
+    }
+    
+    // Generate personalized routines based on analysis
+    const detectedIssues = analysis.detected_issues || [];
+    const skinType = analysis.ai_analysis_results?.skinType || 'combination';
+    
+    const isPremium = await checkUserPremiumStatus(userId);
+    
+    // Base routines everyone gets
+    let morningRoutine = [
+      "Gentle cleanser",
+      "Hydrating toner",
+      "Moisturizer",
+      "Sunscreen SPF 50"
+    ];
+    
+    let eveningRoutine = [
+      "Oil cleanser",
+      "Water-based cleanser", 
+      "Hydrating toner",
+      "Moisturizer"
+    ];
+    
+    let weeklyRoutine = [
+      "Gentle exfoliation",
+      "Hydrating mask"
+    ];
+    
+    // Customize based on skin issues
+    if (detectedIssues.some(issue => issue.includes('acne'))) {
+      morningRoutine.splice(2, 0, "Niacinamide serum");
+      eveningRoutine.splice(3, 0, "BHA treatment (2-3x weekly)");
+      weeklyRoutine.push("Clay mask for T-zone");
+    }
+    
+    if (detectedIssues.some(issue => issue.includes('dryness'))) {
+      morningRoutine.splice(2, 0, "Hyaluronic acid serum");
+      eveningRoutine.splice(3, 0, "Rich hydrating serum");
+      eveningRoutine.push("Occlusive as last step (petroleum jelly or balm)");
+      weeklyRoutine.push("Overnight hydrating mask");
+    }
+    
+    if (detectedIssues.some(issue => issue.includes('hyperpigmentation'))) {
+      morningRoutine.splice(2, 0, "Vitamin C serum");
+      eveningRoutine.splice(3, 0, "Alpha arbutin or tranexamic acid");
+      weeklyRoutine.push("Brightening mask");
+    }
+    
+    if (detectedIssues.some(issue => issue.includes('texture'))) {
+      eveningRoutine.splice(3, 0, "AHA treatment (2-3x weekly)");
+      weeklyRoutine.push("Chemical exfoliation treatment");
+    }
+    
+    // Premium users get more advanced routines
+    if (isPremium) {
+      if (skinType === 'oily' || skinType === 'combination') {
+        morningRoutine.splice(2, 0, "Oil-control toner with witch hazel");
+        eveningRoutine.splice(3, 0, "Azelaic acid treatment");
+      }
+      
+      if (detectedIssues.some(issue => issue.includes('wrinkle') || issue.includes('aging'))) {
+        morningRoutine.splice(2, 0, "Peptide complex");
+        eveningRoutine.splice(3, 0, "Retinol serum (start 2x weekly)");
+        weeklyRoutine.push("Firming mask");
+      }
+      
+      if (detectedIssues.some(issue => issue.includes('sensitivity'))) {
+        morningRoutine.splice(2, 0, "Centella asiatica serum");
+        eveningRoutine.splice(3, 0, "Barrier repair concentrate");
+        weeklyRoutine = weeklyRoutine.filter(item => !item.includes('exfoliation')); // Remove exfoliation
+        weeklyRoutine.push("Cica mask");
+      }
+    }
+    
+    // Save the personalized routine to the database (in a real app)
+    // Here we're just returning it
+    
+    return {
+      morning: morningRoutine,
+      evening: eveningRoutine,
+      weekly: weeklyRoutine
+    };
+  } catch (error) {
+    console.error('Error generating personalized routines:', error);
+    // Return default routines on error
+    return {
+      morning: ["Gentle cleanser", "Moisturizer", "Sunscreen"],
+      evening: ["Cleanser", "Moisturizer"],
+      weekly: ["Exfoliation"]
+    };
+  }
+};
+
 export { 
   analyzeSkinImage, 
   saveAnalysisToSupabase, 
@@ -363,5 +678,8 @@ export {
   getPremiumRecommendations, 
   trackTreatmentProgress,
   createJournalEntry,
-  getJournalEntries
+  getJournalEntries,
+  checkUserPremiumStatus,
+  getAIDoctorResponse,
+  generatePersonalizedRoutines
 };
