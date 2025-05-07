@@ -1,15 +1,16 @@
-
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ArrowLeft, Calendar, Download, Share2, AlertTriangle, Star, LockKeyhole } from 'lucide-react';
-import { getAnalysisById, getPremiumRecommendations } from '@/services/analysisService';
+import { ArrowLeft, Calendar, Download, Share2, AlertTriangle, Star, LockKeyhole, CheckCircle } from 'lucide-react';
+import { getAnalysisById, getPremiumRecommendations, trackTreatmentProgress } from '@/services/analysisService';
 import { SkinAnalysis } from '@/types';
 import { useToast } from '@/hooks/use-toast';
 import { Progress } from '@/components/ui/progress';
 import { useAuth } from '@/contexts/AuthContext';
+import TreatmentPlan from './TreatmentPlan';
+import DermatologistFeedback from './DermatologistFeedback';
 
 const AnalysisDetail = () => {
   const { id } = useParams<{ id: string }>();
@@ -17,6 +18,8 @@ const AnalysisDetail = () => {
   const [loading, setLoading] = useState(true);
   const [premiumData, setPremiumData] = useState<any>(null);
   const [loadingPremium, setLoadingPremium] = useState(false);
+  const [selectedSolution, setSelectedSolution] = useState<number | null>(null);
+  const [treatmentStarted, setTreatmentStarted] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
   const { user } = useAuth();
@@ -63,7 +66,7 @@ const AnalysisDetail = () => {
       // Show upgrade prompt
       toast({
         title: "Premium Feature",
-        description: "Upgrade to Premium for advanced product recommendations and personalized routines.",
+        description: "Upgrade to Premium for advanced product recommendations, personalized treatment plans, and AI dermatologist consultations.",
         action: (
           <Button onClick={() => navigate('/upgrade')} variant="default" size="sm">
             Upgrade Now
@@ -86,6 +89,32 @@ const AnalysisDetail = () => {
       });
     } finally {
       setLoadingPremium(false);
+    }
+  };
+
+  const startTreatment = async (solutionIndex: number) => {
+    if (!id || !user) return;
+    
+    try {
+      // This would normally send data to the backend
+      setSelectedSolution(solutionIndex);
+      setTreatmentStarted(true);
+      
+      toast({
+        title: "Treatment Plan Started",
+        description: "We'll help you track your progress with this treatment plan",
+      });
+      
+      // In a real app, we'd save this to the database
+      await trackTreatmentProgress(id, solutionIndex);
+      
+    } catch (error) {
+      console.error('Error starting treatment:', error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to start treatment plan.",
+      });
     }
   };
 
@@ -227,10 +256,10 @@ const AnalysisDetail = () => {
                   <TabsTrigger value="summary">Summary</TabsTrigger>
                   <TabsTrigger value="issues">Issues</TabsTrigger>
                   <TabsTrigger value="recommendations">Recommendations</TabsTrigger>
-                  <TabsTrigger value="premium">
-                    <Star className="w-4 h-4 mr-1" /> Premium
+                  <TabsTrigger value="treatment">
+                    <Star className="w-4 h-4 mr-1" /> Treatment Plan
                   </TabsTrigger>
-                  <TabsTrigger value="full-data">Full Data</TabsTrigger>
+                  <TabsTrigger value="dermatologist">AI Doctor</TabsTrigger>
                 </TabsList>
                 
                 <TabsContent value="summary" className="space-y-6">
@@ -351,15 +380,15 @@ const AnalysisDetail = () => {
                   </div>
                 </TabsContent>
                 
-                <TabsContent value="premium" className="space-y-6">
+                <TabsContent value="treatment" className="space-y-6">
                   {!premiumData && !loadingPremium ? (
                     <div className="text-center py-12">
                       <div className="inline-flex items-center justify-center p-4 bg-amber-50 rounded-full mb-4">
                         <LockKeyhole size={24} className="text-amber-600" />
                       </div>
-                      <h3 className="text-lg font-medium mb-2">Premium Personalized Recommendations</h3>
+                      <h3 className="text-lg font-medium mb-2">Premium Treatment Plans</h3>
                       <p className="text-gray-600 max-w-md mx-auto mb-6">
-                        Get dermatologist-grade product recommendations and personalized skincare routines tailored specifically to your skin needs.
+                        Get personalized treatment plans, progress tracking, and periodic checkups with our AI dermatologist to effectively address your specific skin concerns.
                       </p>
                       <Button onClick={loadPremiumContent}>
                         <Star className="mr-2 h-4 w-4" /> 
@@ -371,119 +400,46 @@ const AnalysisDetail = () => {
                       <div className="inline-flex items-center justify-center p-4 bg-skin-blue/20 rounded-full mb-4">
                         <div className="h-8 w-8 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
                       </div>
-                      <h3 className="text-lg font-medium">Loading premium content...</h3>
+                      <h3 className="text-lg font-medium">Loading treatment plans...</h3>
                     </div>
                   ) : (
-                    <div className="space-y-6">
-                      <div>
-                        <h3 className="text-lg font-medium mb-3 flex items-center">
-                          <Star className="text-amber-500 mr-2 h-5 w-5" />
-                          Premium Product Recommendations
-                        </h3>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          {premiumData?.premiumProducts.map((product: any, index: number) => (
-                            <div key={index} className="border rounded-lg p-4 hover:shadow-md transition-shadow bg-white">
-                              <h4 className="font-medium text-lg">{product.name}</h4>
-                              <p className="text-sm text-gray-500">{product.brand}</p>
-                              <p className="text-amber-600 font-medium mt-2">{product.price}</p>
-                              <p className="text-sm text-gray-600 mt-2">{product.description}</p>
-                              <Button variant="outline" size="sm" className="mt-3 w-full">
-                                View Product
-                              </Button>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                      
-                      <div>
-                        <h3 className="text-lg font-medium mb-3 flex items-center">
-                          <Star className="text-amber-500 mr-2 h-5 w-5" />
-                          Custom Skincare Routine
-                        </h3>
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                          <div className="border rounded-lg p-4 bg-white">
-                            <h4 className="font-medium mb-3">Morning Routine</h4>
-                            <ol className="space-y-2">
-                              {premiumData?.customRoutine.morning.map((step: string, index: number) => (
-                                <li key={index} className="flex items-start">
-                                  <span className="inline-flex items-center justify-center bg-primary/10 text-primary rounded-full w-5 h-5 text-xs font-medium mr-2 mt-0.5">
-                                    {index + 1}
-                                  </span>
-                                  <span>{step}</span>
-                                </li>
-                              ))}
-                            </ol>
-                          </div>
-                          
-                          <div className="border rounded-lg p-4 bg-white">
-                            <h4 className="font-medium mb-3">Evening Routine</h4>
-                            <ol className="space-y-2">
-                              {premiumData?.customRoutine.evening.map((step: string, index: number) => (
-                                <li key={index} className="flex items-start">
-                                  <span className="inline-flex items-center justify-center bg-primary/10 text-primary rounded-full w-5 h-5 text-xs font-medium mr-2 mt-0.5">
-                                    {index + 1}
-                                  </span>
-                                  <span>{step}</span>
-                                </li>
-                              ))}
-                            </ol>
-                          </div>
-                          
-                          <div className="border rounded-lg p-4 bg-white">
-                            <h4 className="font-medium mb-3">Weekly Treatments</h4>
-                            <ol className="space-y-2">
-                              {premiumData?.customRoutine.weekly.map((step: string, index: number) => (
-                                <li key={index} className="flex items-start">
-                                  <span className="inline-flex items-center justify-center bg-primary/10 text-primary rounded-full w-5 h-5 text-xs font-medium mr-2 mt-0.5">
-                                    {index + 1}
-                                  </span>
-                                  <span>{step}</span>
-                                </li>
-                              ))}
-                            </ol>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
+                    <TreatmentPlan 
+                      premiumData={premiumData} 
+                      selectedSolution={selectedSolution}
+                      treatmentStarted={treatmentStarted}
+                      onSelectSolution={startTreatment}
+                    />
                   )}
                 </TabsContent>
                 
-                <TabsContent value="full-data" className="space-y-6">
-                  <div>
-                    <h3 className="text-lg font-medium mb-3">Complete AI Analysis Data</h3>
-                    <div className="bg-gray-50 p-4 rounded-lg">
-                      <pre className="text-sm overflow-x-auto whitespace-pre-wrap break-words">
-                        {JSON.stringify(analysis.aiAnalysisResults, null, 2)}
-                      </pre>
+                <TabsContent value="dermatologist" className="space-y-6">
+                  {!premiumData && !loadingPremium ? (
+                    <div className="text-center py-12">
+                      <div className="inline-flex items-center justify-center p-4 bg-amber-50 rounded-full mb-4">
+                        <LockKeyhole size={24} className="text-amber-600" />
+                      </div>
+                      <h3 className="text-lg font-medium mb-2">AI Dermatologist</h3>
+                      <p className="text-gray-600 max-w-md mx-auto mb-6">
+                        Get in-depth analysis from our AI dermatologist that provides expert-level insights about your skin condition, potential underlying causes, and personalized treatment options.
+                      </p>
+                      <Button onClick={loadPremiumContent}>
+                        <Star className="mr-2 h-4 w-4" /> 
+                        Unlock Premium Features
+                      </Button>
                     </div>
-                  </div>
-                  
-                  <div>
-                    <h3 className="text-lg font-medium mb-3">Severity Scores</h3>
-                    <div className="bg-gray-50 p-4 rounded-lg">
-                      <pre className="text-sm overflow-x-auto whitespace-pre-wrap break-words">
-                        {JSON.stringify(analysis.severityScores, null, 2)}
-                      </pre>
+                  ) : loadingPremium ? (
+                    <div className="text-center py-12">
+                      <div className="inline-flex items-center justify-center p-4 bg-skin-blue/20 rounded-full mb-4">
+                        <div className="h-8 w-8 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
+                      </div>
+                      <h3 className="text-lg font-medium">Consulting with AI dermatologist...</h3>
                     </div>
-                  </div>
-                  
-                  <div>
-                    <h3 className="text-lg font-medium mb-3">Recommendations</h3>
-                    <div className="bg-gray-50 p-4 rounded-lg">
-                      <pre className="text-sm overflow-x-auto whitespace-pre-wrap break-words">
-                        {JSON.stringify(analysis.recommendations, null, 2)}
-                      </pre>
-                    </div>
-                  </div>
-                  
-                  <div>
-                    <h3 className="text-lg font-medium mb-3">Detected Issues</h3>
-                    <div className="bg-gray-50 p-4 rounded-lg">
-                      <pre className="text-sm overflow-x-auto whitespace-pre-wrap break-words">
-                        {JSON.stringify(analysis.detectedIssues, null, 2)}
-                      </pre>
-                    </div>
-                  </div>
+                  ) : (
+                    <DermatologistFeedback 
+                      analysis={analysis}
+                      premiumData={premiumData}
+                    />
+                  )}
                 </TabsContent>
               </Tabs>
             </CardContent>

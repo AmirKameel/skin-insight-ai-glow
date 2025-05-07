@@ -5,10 +5,11 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Calendar, Camera, Clock, ArrowRight } from 'lucide-react';
+import { Calendar, Camera, Clock, ArrowRight, Bell, AlertTriangle, CheckCircle } from 'lucide-react';
 import { getUserAnalyses } from '@/services/analysisService';
 import { SkinAnalysis } from '@/types';
 import { useToast } from '@/hooks/use-toast';
+import SkinHealthOverview from './SkinHealthOverview';
 
 const Dashboard = () => {
   const { user } = useAuth();
@@ -16,6 +17,12 @@ const Dashboard = () => {
   const [recentAnalyses, setRecentAnalyses] = useState<SkinAnalysis[]>([]);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
+  const [skinConcerns, setSkinConcerns] = useState<{ name: string, score: number }[]>([
+    { name: 'Hydration', score: 70 },
+    { name: 'Texture', score: 65 },
+    { name: 'Acne', score: 85 },
+    { name: 'Redness', score: 75 },
+  ]);
 
   useEffect(() => {
     const hour = new Date().getHours();
@@ -31,7 +38,29 @@ const Dashboard = () => {
       try {
         setLoading(true);
         const analyses = await getUserAnalyses(user.id);
-        setRecentAnalyses(analyses);
+        
+        // Update dashboard with latest analysis data if available
+        if (analyses && analyses.length > 0) {
+          setRecentAnalyses(analyses);
+          
+          // Update skin concerns with real data if available
+          const latestAnalysis = analyses[0];
+          if (latestAnalysis.severityScores) {
+            const concernsData = Object.entries(latestAnalysis.severityScores)
+              .filter(([key]) => key !== 'overallHealth')
+              .map(([key, value]) => {
+                // Convert severity score to a positive percentage (lower is worse, so invert)
+                const score = typeof value === 'number' ? Math.max(0, Math.min(100, (10 - value) * 10)) : 70;
+                // Format key from camelCase to Title Case
+                const name = key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase());
+                return { name, score };
+              });
+              
+            if (concernsData.length > 0) {
+              setSkinConcerns(concernsData);
+            }
+          }
+        }
       } catch (error) {
         console.error('Error fetching analyses:', error);
         toast({
@@ -47,17 +76,10 @@ const Dashboard = () => {
     fetchUserAnalyses();
   }, [user, toast]);
 
-  // Mock data - would come from backend in a real app
+  // Mock data for upcoming routines - would come from backend in a real app
   const upcomingRoutines = [
     { id: '1', name: 'Morning Routine', time: '8:00 AM' },
     { id: '2', name: 'Evening Routine', time: '8:00 PM' },
-  ];
-
-  const skinConcerns = [
-    { name: 'Hydration', score: 70 },
-    { name: 'Texture', score: 65 },
-    { name: 'Acne', score: 85 },
-    { name: 'Redness', score: 75 },
   ];
 
   const formatDate = (date: Date) => {
@@ -66,6 +88,64 @@ const Dashboard = () => {
       month: 'short',
       day: 'numeric'
     }).format(date);
+  };
+
+  // Calculate overall health score based on latest analysis
+  const calculateOverallScore = () => {
+    if (recentAnalyses.length === 0) return 78; // Default value
+    
+    const latestAnalysis = recentAnalyses[0];
+    if (!latestAnalysis.severityScores) return 78;
+    
+    if ('overallHealth' in latestAnalysis.severityScores) {
+      return latestAnalysis.severityScores.overallHealth * 10; // Convert to percentage
+    }
+    
+    // Calculate average from all scores
+    const scores = Object.values(latestAnalysis.severityScores).filter(score => typeof score === 'number');
+    if (scores.length === 0) return 78;
+    
+    const average = scores.reduce((sum, score) => sum + (10 - Number(score)), 0) / scores.length;
+    return Math.round(average * 10); // Convert to percentage
+  };
+
+  // Get latest recommendations based on analysis
+  const getRecommendations = () => {
+    if (recentAnalyses.length === 0) {
+      return [
+        { 
+          title: "Add a hydrating serum to your routine", 
+          description: "Your skin shows signs of dehydration. A hyaluronic acid serum can help maintain moisture.",
+          type: "hydration"
+        },
+        {
+          title: "Incorporate gentle exfoliation",
+          description: "To improve skin texture, try a gentle chemical exfoliant 2-3 times per week.",
+          type: "texture"
+        },
+        {
+          title: "Increase sun protection",
+          description: "We've detected early signs of sun damage. Use SPF 50+ sunscreen daily.",
+          type: "protection"
+        }
+      ];
+    }
+    
+    const latestAnalysis = recentAnalyses[0];
+    if (!latestAnalysis.recommendations || !latestAnalysis.recommendations.tips) {
+      return [];
+    }
+    
+    // Convert tips to recommendation format
+    return latestAnalysis.recommendations.tips.slice(0, 3).map((tip, index) => {
+      const types = ["hydration", "texture", "protection"];
+      return {
+        title: tip,
+        description: latestAnalysis.aiAnalysisResults?.analysis?.slice(0, 80) + '...' || 
+                    "Based on your skin analysis, we recommend making this change to your routine.",
+        type: types[index % types.length]
+      };
+    });
   };
 
   return (
@@ -91,30 +171,7 @@ const Dashboard = () => {
             <CardDescription>Overall skin condition</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="flex items-center justify-center py-4">
-              <div className="relative w-36 h-36">
-                <div className="w-full h-full rounded-full bg-skin-blue/20 flex items-center justify-center">
-                  <span className="text-4xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">78%</span>
-                </div>
-                <div className="absolute inset-0 rounded-full border-4 border-primary border-r-transparent rotate-45"></div>
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-2 mt-4">
-              {skinConcerns.map((concern) => (
-                <div key={concern.name} className="text-sm">
-                  <div className="flex justify-between mb-1">
-                    <span>{concern.name}</span>
-                    <span className="font-medium">{concern.score}%</span>
-                  </div>
-                  <div className="w-full bg-gray-200 rounded-full h-1.5">
-                    <div 
-                      className="h-1.5 rounded-full bg-primary" 
-                      style={{ width: `${concern.score}%` }}
-                    ></div>
-                  </div>
-                </div>
-              ))}
-            </div>
+            <SkinHealthOverview score={calculateOverallScore()} concerns={skinConcerns} />
           </CardContent>
         </Card>
 
@@ -140,7 +197,9 @@ const Dashboard = () => {
                   </Button>
                 </div>
               ))}
-              <Button variant="outline" className="w-full mt-2">View All Routines</Button>
+              <Button asChild variant="outline" className="w-full mt-2">
+                <Link to="/routines">View All Routines</Link>
+              </Button>
             </div>
           </CardContent>
         </Card>
@@ -173,8 +232,8 @@ const Dashboard = () => {
               </Button>
               <Button asChild variant="outline" className="h-24 flex flex-col">
                 <Link to="/knowledge">
-                  <Calendar className="mb-2" size={24} />
-                  <span>Knowledge</span>
+                  <Bell className="mb-2" size={24} />
+                  <span>Notifications</span>
                 </Link>
               </Button>
             </div>
@@ -259,24 +318,21 @@ const Dashboard = () => {
         </CardHeader>
         <CardContent>
           <div className="space-y-3">
-            <div className="p-4 rounded-lg bg-skin-green/20">
-              <h4 className="font-medium mb-1">Add a hydrating serum to your routine</h4>
-              <p className="text-sm text-gray-600">
-                Your skin shows signs of dehydration. A hyaluronic acid serum can help maintain moisture.
-              </p>
-            </div>
-            <div className="p-4 rounded-lg bg-skin-blue/20">
-              <h4 className="font-medium mb-1">Incorporate gentle exfoliation</h4>
-              <p className="text-sm text-gray-600">
-                To improve skin texture, try a gentle chemical exfoliant 2-3 times per week.
-              </p>
-            </div>
-            <div className="p-4 rounded-lg bg-skin-peach/20">
-              <h4 className="font-medium mb-1">Increase sun protection</h4>
-              <p className="text-sm text-gray-600">
-                We've detected early signs of sun damage. Use SPF 50+ sunscreen daily.
-              </p>
-            </div>
+            {getRecommendations().map((recommendation, index) => (
+              <div 
+                key={index} 
+                className={`p-4 rounded-lg ${
+                  recommendation.type === "hydration" ? "bg-skin-blue/20" : 
+                  recommendation.type === "texture" ? "bg-skin-green/20" : 
+                  "bg-skin-peach/20"
+                }`}
+              >
+                <h4 className="font-medium mb-1">{recommendation.title}</h4>
+                <p className="text-sm text-gray-600">
+                  {recommendation.description}
+                </p>
+              </div>
+            ))}
           </div>
         </CardContent>
       </Card>

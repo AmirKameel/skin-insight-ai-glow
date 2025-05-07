@@ -12,6 +12,9 @@ import RegisterForm from "@/components/auth/RegisterForm";
 import Dashboard from "@/components/dashboard/Dashboard";
 import SkinAnalysis from "@/components/analysis/SkinAnalysis";
 import AnalysisDetail from "@/components/analysis/AnalysisDetail";
+import Journal from "./pages/Journal";
+import Knowledge from "./pages/Knowledge";
+import Routines from "./pages/Routines";
 import NotFound from "./pages/NotFound";
 import Upgrade from "./pages/Upgrade";
 import { useAuth } from "@/contexts/AuthContext";
@@ -97,6 +100,27 @@ const AppRoutes = () => {
         <ProtectedRoute>
           <AuthenticatedLayout>
             <AnalysisDetail />
+          </AuthenticatedLayout>
+        </ProtectedRoute>
+      } />
+      <Route path="/journal" element={
+        <ProtectedRoute>
+          <AuthenticatedLayout>
+            <Journal />
+          </AuthenticatedLayout>
+        </ProtectedRoute>
+      } />
+      <Route path="/knowledge" element={
+        <ProtectedRoute>
+          <AuthenticatedLayout>
+            <Knowledge />
+          </AuthenticatedLayout>
+        </ProtectedRoute>
+      } />
+      <Route path="/routines" element={
+        <ProtectedRoute>
+          <AuthenticatedLayout>
+            <Routines />
           </AuthenticatedLayout>
         </ProtectedRoute>
       } />

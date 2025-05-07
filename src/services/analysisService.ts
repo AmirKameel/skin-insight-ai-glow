@@ -96,10 +96,10 @@ const saveAnalysisToSupabase = async (analysis: SkinAnalysis, userId: string, im
       .insert({
         user_id: userId,
         image_url: publicUrl,
-        ai_analysis_results: analysis.aiAnalysisResults,
+        ai_analysis_results: analysis.aiAnalysisResults as Json,
         detected_issues: analysis.detectedIssues,
-        severity_scores: analysis.severityScores,
-        recommendations: analysis.recommendations
+        severity_scores: analysis.severityScores as Json,
+        recommendations: analysis.recommendations as Json
       })
       .select('*')
       .single();
@@ -190,7 +190,7 @@ const getUserAnalyses = async (userId: string): Promise<SkinAnalysis[]> => {
   }
 };
 
-// New function: Get premium skincare product recommendations
+// Get premium skincare product recommendations
 const getPremiumRecommendations = async (analysisId: string): Promise<any> => {
   // In a real app, this would call a premium API or service
   // For now, we'll return mock premium recommendations
@@ -237,8 +237,121 @@ const getPremiumRecommendations = async (analysisId: string): Promise<any> => {
         "Hydrating mask",
         "Detoxifying mask"
       ]
-    }
+    },
+    treatmentOptions: [
+      {
+        id: 1,
+        name: "Conservative Treatment",
+        description: "A gentle approach focused on hydration and barrier repair",
+        duration: "6-8 weeks",
+        steps: [
+          "Introduce ceramide-rich moisturizer",
+          "Add hyaluronic acid serum",
+          "Gentle PHA exfoliation once weekly"
+        ],
+        expectedResults: "Improved hydration, reduced sensitivity, better barrier function"
+      },
+      {
+        id: 2,
+        name: "Moderate Treatment",
+        description: "Balanced approach addressing multiple concerns simultaneously",
+        duration: "8-10 weeks",
+        steps: [
+          "Introduce retinol (2x weekly)",
+          "Add niacinamide serum",
+          "Weekly BHA treatment for congestion"
+        ],
+        expectedResults: "Improved texture, reduced breakouts, more even skin tone"
+      },
+      {
+        id: 3,
+        name: "Intensive Treatment",
+        description: "Accelerated approach for those seeking faster results",
+        duration: "10-12 weeks",
+        steps: [
+          "Alternate retinol and AHA treatments",
+          "Vitamin C + Ferulic for morning antioxidant protection",
+          "Intensive hydration and barrier support"
+        ],
+        expectedResults: "Significant improvement in texture, tone, and clarity with possible initial purging"
+      }
+    ]
   };
+};
+
+// Track treatment progress
+const trackTreatmentProgress = async (analysisId: string, selectedSolutionIndex: number): Promise<void> => {
+  // In a real app, this would save the treatment plan and track progress in the database
+  console.log(`Starting treatment plan ${selectedSolutionIndex} for analysis ${analysisId}`);
+  
+  // This would normally save to the database
+  try {
+    await supabase
+      .from('treatment_tracking')
+      .insert({
+        analysis_id: analysisId,
+        solution_index: selectedSolutionIndex,
+        start_date: new Date(),
+        status: 'active',
+        progress: {
+          days_completed: 0,
+          total_days: 30,
+          checkpoints: [],
+          next_checkup: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) // 7 days from now
+        }
+      });
+  } catch (error) {
+    console.log('This is a mock function - in production this would save to the database');
+    // No need to throw the error here as this is just a mock
+  }
+};
+
+// Create journal entry to track progress
+const createJournalEntry = async (userId: string, data: {
+  mood: string;
+  notes: string;
+  sleep_quality: number;
+  stress_level: number;
+  image_url?: string;
+}): Promise<any> => {
+  try {
+    const { error, data: journalEntry } = await supabase
+      .from('skin_journal')
+      .insert({
+        user_id: userId,
+        mood: data.mood,
+        notes: data.notes,
+        sleep_quality: data.sleep_quality,
+        stress_level: data.stress_level,
+        image_url: data.image_url,
+        date: new Date()
+      })
+      .select('*')
+      .single();
+
+    if (error) throw error;
+    return journalEntry;
+  } catch (error) {
+    console.error('Error creating journal entry:', error);
+    throw error;
+  }
+};
+
+// Get journal entries
+const getJournalEntries = async (userId: string): Promise<any[]> => {
+  try {
+    const { data, error } = await supabase
+      .from('skin_journal')
+      .select('*')
+      .eq('user_id', userId)
+      .order('date', { ascending: false });
+
+    if (error) throw error;
+    return data || [];
+  } catch (error) {
+    console.error('Error fetching journal entries:', error);
+    return [];
+  }
 };
 
 export { 
@@ -246,5 +359,8 @@ export {
   saveAnalysisToSupabase, 
   getAnalysisById, 
   getUserAnalyses, 
-  getPremiumRecommendations 
+  getPremiumRecommendations, 
+  trackTreatmentProgress,
+  createJournalEntry,
+  getJournalEntries
 };
