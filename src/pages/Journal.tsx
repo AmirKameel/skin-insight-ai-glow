@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Slider } from '@/components/ui/slider';
-import { CalendarIcon, Camera, Plus, Filter, Calendar } from 'lucide-react';
+import { CalendarIcon, Camera, Plus, Filter, Calendar, Star } from 'lucide-react';
 import { createJournalEntry, getJournalEntries } from '@/services/analysisService';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';

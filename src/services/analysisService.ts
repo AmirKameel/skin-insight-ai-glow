@@ -286,22 +286,22 @@ const trackTreatmentProgress = async (analysisId: string, selectedSolutionIndex:
   
   // This would normally save to the database
   try {
-    await supabase
-      .from('treatment_tracking')
-      .insert({
-        analysis_id: analysisId,
-        solution_index: selectedSolutionIndex,
-        start_date: new Date(),
-        status: 'active',
-        progress: {
-          days_completed: 0,
-          total_days: 30,
-          checkpoints: [],
-          next_checkup: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) // 7 days from now
-        }
-      });
+    // Using a raw insert query instead of using the treatment_tracking table directly
+    // since the TypeScript types don't know about our new table yet
+    await supabase.rpc('insert_treatment_tracking', {
+      p_analysis_id: analysisId,
+      p_solution_index: selectedSolutionIndex,
+      p_start_date: new Date().toISOString(),
+      p_status: 'active',
+      p_progress: JSON.stringify({
+        days_completed: 0,
+        total_days: 30,
+        checkpoints: [],
+        next_checkup: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString() // 7 days from now
+      })
+    });
   } catch (error) {
-    console.log('This is a mock function - in production this would save to the database');
+    console.error('Error tracking treatment progress:', error);
     // No need to throw the error here as this is just a mock
   }
 };
@@ -324,7 +324,8 @@ const createJournalEntry = async (userId: string, data: {
         sleep_quality: data.sleep_quality,
         stress_level: data.stress_level,
         image_url: data.image_url,
-        date: new Date()
+        // Convert Date to ISO string to match the expected string type
+        date: new Date().toISOString()
       })
       .select('*')
       .single();

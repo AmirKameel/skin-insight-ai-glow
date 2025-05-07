@@ -271,15 +271,7 @@ export type Database = {
           severity_scores?: Json | null
           user_id?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "skin_analyses_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       skin_journal: {
         Row: {
@@ -442,6 +434,44 @@ export type Database = {
           verified?: boolean | null
         }
         Relationships: []
+      }
+      treatment_tracking: {
+        Row: {
+          analysis_id: string | null
+          created_at: string | null
+          id: string
+          progress: Json | null
+          solution_index: number | null
+          start_date: string | null
+          status: string | null
+        }
+        Insert: {
+          analysis_id?: string | null
+          created_at?: string | null
+          id?: string
+          progress?: Json | null
+          solution_index?: number | null
+          start_date?: string | null
+          status?: string | null
+        }
+        Update: {
+          analysis_id?: string | null
+          created_at?: string | null
+          id?: string
+          progress?: Json | null
+          solution_index?: number | null
+          start_date?: string | null
+          status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "treatment_tracking_analysis_id_fkey"
+            columns: ["analysis_id"]
+            isOneToOne: false
+            referencedRelation: "skin_analyses"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_product_history: {
         Row: {
