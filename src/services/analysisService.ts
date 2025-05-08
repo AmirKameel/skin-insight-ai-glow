@@ -1,6 +1,6 @@
 
 import { supabase } from '@/integrations/supabase/client';
-import { SkinAnalysis, AIDoctorResponse, JournalEntry } from '@/types';
+import { SkinAnalysis, AIDoctorResponse, JournalEntry, Json } from '@/types';
 
 // Get all analyses for a user
 export async function getUserAnalyses(userId: string): Promise<SkinAnalysis[]> {
@@ -21,16 +21,16 @@ export async function getUserAnalyses(userId: string): Promise<SkinAnalysis[]> {
     imageUrl: analysis.image_url || '',
     createdAt: new Date(analysis.created_at),
     detectedIssues: analysis.detected_issues || [],
-    recommendations: typeof analysis.recommendations === 'object' ? {
-      products: Array.isArray(analysis.recommendations.products) ? analysis.recommendations.products : [],
-      routines: Array.isArray(analysis.recommendations.routines) ? analysis.recommendations.routines : [],
-      tips: Array.isArray(analysis.recommendations.tips) ? analysis.recommendations.tips : []
-    } : {
-      products: [],
-      routines: [],
-      tips: []
+    recommendations: {
+      products: Array.isArray(analysis.recommendations?.products) ? analysis.recommendations.products : [],
+      routines: Array.isArray(analysis.recommendations?.routines) ? analysis.recommendations.routines : [],
+      tips: Array.isArray(analysis.recommendations?.tips) ? analysis.recommendations.tips : []
     },
-    severityScores: typeof analysis.severity_scores === 'object' ? analysis.severity_scores : {},
+    severityScores: typeof analysis.severity_scores === 'object' ? 
+      Object.fromEntries(
+        Object.entries(analysis.severity_scores || {})
+          .map(([key, value]) => [key, typeof value === 'number' ? value : 0])
+      ) : {},
     aiAnalysisResults: typeof analysis.ai_analysis_results === 'object' ? analysis.ai_analysis_results : {}
   }));
 }
@@ -54,16 +54,16 @@ export async function getAnalysisById(analysisId: string): Promise<SkinAnalysis 
     imageUrl: data.image_url || '',
     createdAt: new Date(data.created_at),
     detectedIssues: data.detected_issues || [],
-    recommendations: typeof data.recommendations === 'object' ? {
-      products: Array.isArray(data.recommendations.products) ? data.recommendations.products : [],
-      routines: Array.isArray(data.recommendations.routines) ? data.recommendations.routines : [],
-      tips: Array.isArray(data.recommendations.tips) ? data.recommendations.tips : []
-    } : {
-      products: [],
-      routines: [],
-      tips: []
+    recommendations: {
+      products: Array.isArray(data.recommendations?.products) ? data.recommendations.products : [],
+      routines: Array.isArray(data.recommendations?.routines) ? data.recommendations.routines : [],
+      tips: Array.isArray(data.recommendations?.tips) ? data.recommendations.tips : []
     },
-    severityScores: typeof data.severity_scores === 'object' ? data.severity_scores : {},
+    severityScores: typeof data.severity_scores === 'object' ? 
+      Object.fromEntries(
+        Object.entries(data.severity_scores || {})
+          .map(([key, value]) => [key, typeof value === 'number' ? value : 0])
+      ) : {},
     aiAnalysisResults: typeof data.ai_analysis_results === 'object' ? data.ai_analysis_results : {}
   };
 }
@@ -244,16 +244,16 @@ export async function saveAnalysisToSupabase(analysis: any, userId: string, file
     imageUrl: data.image_url,
     createdAt: new Date(data.created_at),
     detectedIssues: data.detected_issues || [],
-    recommendations: typeof data.recommendations === 'object' ? {
-      products: Array.isArray(data.recommendations.products) ? data.recommendations.products : [],
-      routines: Array.isArray(data.recommendations.routines) ? data.recommendations.routines : [],
-      tips: Array.isArray(data.recommendations.tips) ? data.recommendations.tips : []
-    } : {
-      products: [],
-      routines: [],
-      tips: []
+    recommendations: {
+      products: Array.isArray(data.recommendations?.products) ? data.recommendations.products : [],
+      routines: Array.isArray(data.recommendations?.routines) ? data.recommendations.routines : [],
+      tips: Array.isArray(data.recommendations?.tips) ? data.recommendations.tips : []
     },
-    severityScores: typeof data.severity_scores === 'object' ? data.severity_scores : {},
+    severityScores: typeof data.severity_scores === 'object' ? 
+      Object.fromEntries(
+        Object.entries(data.severity_scores || {})
+          .map(([key, value]) => [key, typeof value === 'number' ? value : 0])
+      ) : {},
     aiAnalysisResults: typeof data.ai_analysis_results === 'object' ? data.ai_analysis_results : {}
   };
 }

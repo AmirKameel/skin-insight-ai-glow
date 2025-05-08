@@ -1,254 +1,201 @@
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { Send, Bot, User, Loader2, Star, Sparkles } from 'lucide-react';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Send, Bot, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { getAIDoctorResponse, checkUserPremiumStatus } from '@/services/analysisService';
-import { Badge } from '@/components/ui/badge';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { cn } from '@/lib/utils';
-import { PageProps } from '@/types';
+import { AIDoctorResponse } from '@/types';
 
-interface Message {
-  id: string;
-  content: string;
-  sender: 'user' | 'ai';
-  timestamp: Date;
-  recommendations?: Array<{name: string, type: string}>;
-  isLoading?: boolean;
-}
-
-interface AIDoctorChatProps extends PageProps {
+interface AIDoctorChatProps {
   analysisId?: string;
+  language?: 'en' | 'ar';
 }
 
 const AIDoctorChat: React.FC<AIDoctorChatProps> = ({ analysisId, language = 'en' }) => {
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [newMessage, setNewMessage] = useState('');
-  const [isPremium, setIsPremium] = useState<boolean | null>(null);
+  const [question, setQuestion] = useState('');
+  const [conversation, setConversation] = useState<Array<{type: 'user' | 'ai', content: string | AIDoctorResponse}>>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const [isPremium, setIsPremium] = useState<boolean>(false);
   const { toast } = useToast();
   const { user } = useAuth();
-  
-  useEffect(() => {
-    // Initialize with a greeting message
-    const initialMessage = getWelcomeMessage(language);
-    setMessages([{
-      id: 'welcome',
-      content: initialMessage,
-      sender: 'ai',
-      timestamp: new Date()
-    }]);
-    
-    // Check if user is premium
+
+  // Text content based on selected language
+  const texts = {
+    title: language === 'ar' ? 'استشر الطبيب الذكي' : 'Consult AI Doctor',
+    subtitle: language === 'ar' 
+      ? 'اطرح أسئلة متعلقة بالبشرة واحصل على إجابات مخصصة بناءً على حالة بشرتك'
+      : 'Ask skin-related questions and get personalized answers based on your skin condition',
+    placeholderQuestion: language === 'ar'
+      ? 'ما هي أفضل المكونات لبشرتي الجافة؟'
+      : 'What ingredients are best for my dry skin?',
+    askButton: language === 'ar' ? 'اسأل' : 'Ask',
+    loading: language === 'ar' ? 'يتم إعداد الإجابة...' : 'Getting answer...',
+    premiumRequired: language === 'ar'
+      ? 'ميزة الطبيب الذكي متاحة فقط للمستخدمين المميزين.'
+      : 'AI Doctor feature is available only for premium users.',
+    upgradeButton: language === 'ar' ? 'ترقية' : 'Upgrade',
+    recommendations: language === 'ar' ? 'توصيات المنتجات:' : 'Product Recommendations:',
+  };
+
+  React.useEffect(() => {
     if (user?.id) {
       checkUserPremiumStatus(user.id)
-        .then(result => setIsPremium(result))
-        .catch(error => {
-          console.error('Error checking premium status:', error);
-          setIsPremium(false);
-        });
+        .then(status => setIsPremium(status))
+        .catch(err => console.error('Error checking premium status:', err));
     }
-  }, [user, language]);
-  
-  // Scroll to bottom when messages update
-  useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
-  
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  };
-  
-  const getWelcomeMessage = (lang: string): string => {
-    if (lang === 'ar') {
-      return 'مرحبًا! أنا الطبيب الإفتراضي المتخصص في العناية بالبشرة. كيف يمكنني مساعدتك اليوم؟';
-    }
-    return "Hello! I'm Dr. AI, your virtual dermatologist. How can I help with your skin concerns today?";
-  };
-  
-  const handleSendMessage = async () => {
-    if (!newMessage.trim() || !user) return;
+  }, [user]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
     
-    const userMessage: Message = {
-      id: `user-${Date.now()}`,
-      content: newMessage,
-      sender: 'user',
-      timestamp: new Date()
-    };
+    if (!question.trim() || !user) return;
     
-    // Add placeholder for AI response
-    const aiPlaceholder: Message = {
-      id: `ai-${Date.now()}`,
-      content: '',
-      sender: 'ai',
-      timestamp: new Date(),
-      isLoading: true
-    };
-    
-    setMessages(prev => [...prev, userMessage, aiPlaceholder]);
-    setNewMessage('');
+    const userQuestion = question;
+    setQuestion('');
+    setConversation(prev => [...prev, {type: 'user', content: userQuestion}]);
     setIsLoading(true);
     
     try {
-      // Get AI response
-      const response = await getAIDoctorResponse(
-        user.id,
-        newMessage,
-        analysisId
-      );
-      
-      // Update the placeholder with the actual response
-      setMessages(prev => prev.map(msg => 
-        msg.id === aiPlaceholder.id 
-          ? {
-              ...msg,
-              content: response.response,
-              recommendations: response.recommendations,
-              isLoading: false
-            } 
-          : msg
-      ));
+      const response = await getAIDoctorResponse(user.id, userQuestion, analysisId);
+      setConversation(prev => [...prev, {type: 'ai', content: response}]);
     } catch (error) {
       console.error('Error getting AI response:', error);
-      
-      // Update placeholder with error message
-      setMessages(prev => prev.map(msg => 
-        msg.id === aiPlaceholder.id 
-          ? {
-              ...msg,
-              content: 'Sorry, I encountered an error. Please try again later.',
-              isLoading: false
-            } 
-          : msg
-      ));
-      
       toast({
         variant: "destructive",
-        title: "Error",
-        description: "Failed to get AI response"
+        title: language === 'ar' ? "حدث خطأ" : "An error occurred",
+        description: language === 'ar' 
+          ? "لم نتمكن من الحصول على إجابة. يرجى المحاولة مرة أخرى لاحقًا." 
+          : "We couldn't get an answer. Please try again later."
       });
     } finally {
       setIsLoading(false);
     }
   };
-  
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    // Send message on Enter (without Shift)
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      handleSendMessage();
-    }
-  };
-  
-  // Format recommendations
-  const renderRecommendations = (recommendations: Array<{name: string, type: string}>) => {
+
+  // If user is not premium, show upgrade prompt
+  if (!isPremium) {
     return (
-      <div className="mt-4 space-y-2">
-        <h4 className="font-medium text-sm">Recommended Products:</h4>
-        <div className="flex flex-wrap gap-2">
-          {recommendations.map((rec, index) => (
-            <Badge key={index} variant="secondary" className="flex items-center gap-1">
-              <span>{rec.name}</span>
-              <span className="text-xs text-muted-foreground">({rec.type})</span>
-            </Badge>
-          ))}
-        </div>
-      </div>
+      <Card className="mb-8">
+        <CardContent className="p-6">
+          <div className="text-center py-8">
+            <div className="bg-muted/50 p-6 rounded-full w-20 h-20 mx-auto mb-4 flex items-center justify-center">
+              <Bot className="h-10 w-10 text-muted-foreground" />
+            </div>
+            <h3 className="text-xl font-semibold mb-2">{texts.title}</h3>
+            <p className="text-muted-foreground mb-6">{texts.premiumRequired}</p>
+            <Button asChild>
+              <a href="/upgrade">{texts.upgradeButton}</a>
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
     );
-  };
-  
+  }
+
   return (
-    <Card className="h-full flex flex-col overflow-hidden">
-      <CardContent className={cn("flex-1 overflow-y-auto p-4", language === 'ar' ? 'text-right' : '')}>
-        <div className="space-y-4">
-          {messages.map((message) => (
-            <div 
-              key={message.id} 
-              className={cn(
-                "flex gap-3 max-w-[85%]", 
-                message.sender === 'user' 
-                  ? 'ml-auto flex-row-reverse' 
-                  : 'mr-auto',
-                language === 'ar' ? 'flex-row-reverse' : ''
-              )}
-            >
-              <Avatar className={cn("h-8 w-8 shrink-0", message.sender === 'user' ? 'bg-primary' : 'bg-blue-600')}>
-                {message.sender === 'user' ? (
-                  <AvatarFallback>
-                    <User className="h-4 w-4" />
-                  </AvatarFallback>
-                ) : (
-                  <AvatarFallback>
-                    <Bot className="h-4 w-4" />
-                  </AvatarFallback>
-                )}
-              </Avatar>
-              
-              <div className={cn("rounded-lg p-4", 
-                message.sender === 'user' 
-                  ? 'bg-primary text-primary-foreground' 
-                  : 'bg-muted'
-              )}>
-                {message.isLoading ? (
-                  <div className="flex items-center justify-center h-6">
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  </div>
-                ) : (
-                  <>
-                    <div className="whitespace-pre-wrap">{message.content}</div>
-                    
-                    {/* Recommendations if present */}
-                    {message.recommendations && message.recommendations.length > 0 && 
-                      renderRecommendations(message.recommendations)
-                    }
-                    
-                    {/* Premium badge on AI messages */}
-                    {message.sender === 'ai' && isPremium && (
-                      <div className="mt-2 flex items-center">
-                        <Badge variant="outline" className="text-xs flex items-center gap-1">
-                          <Star className="h-3 w-3 text-amber-500" />
-                          <span>Premium Response</span>
-                        </Badge>
+    <Card className="mb-8">
+      <CardContent className="p-6">
+        <div className="mb-6">
+          <h3 className="text-xl font-semibold mb-2">{texts.title}</h3>
+          <p className="text-muted-foreground">{texts.subtitle}</p>
+        </div>
+        
+        <div className="border rounded-md mb-4 p-4 h-80 overflow-y-auto">
+          {conversation.length === 0 ? (
+            <div className="flex flex-col h-full items-center justify-center text-muted-foreground">
+              <Bot className="h-10 w-10 mb-2" />
+              <p>{language === 'ar' ? 'اسأل أي سؤال عن بشرتك' : 'Ask any question about your skin'}</p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {conversation.map((message, index) => (
+                <div 
+                  key={index} 
+                  className={cn(
+                    "flex items-start gap-3", 
+                    message.type === 'user' ? 'justify-end' : 'justify-start'
+                  )}
+                >
+                  {message.type === 'ai' && (
+                    <Avatar>
+                      <AvatarFallback>AI</AvatarFallback>
+                      <AvatarImage src="/doctor-avatar.png" />
+                    </Avatar>
+                  )}
+                  
+                  <div className={cn(
+                    "rounded-lg p-3 max-w-[80%]",
+                    message.type === 'user' 
+                      ? 'bg-primary text-primary-foreground' 
+                      : 'bg-muted'
+                  )}>
+                    {message.type === 'user' ? (
+                      <p>{message.content as string}</p>
+                    ) : (
+                      <div>
+                        <p>{(message.content as AIDoctorResponse).response}</p>
+                        
+                        {(message.content as AIDoctorResponse).recommendations && 
+                         (message.content as AIDoctorResponse).recommendations!.length > 0 && (
+                          <div className="mt-2 pt-2 border-t">
+                            <p className="font-medium text-sm mb-1">{texts.recommendations}</p>
+                            <ul className="space-y-1">
+                              {(message.content as AIDoctorResponse).recommendations!.map((rec, i) => (
+                                <li key={i} className="text-sm">
+                                  <span className="font-medium">{rec.name}</span> ({rec.type})
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
                       </div>
                     )}
-                  </>
-                )}
-              </div>
+                  </div>
+                  
+                  {message.type === 'user' && (
+                    <Avatar>
+                      <AvatarFallback>
+                        {user?.email?.charAt(0).toUpperCase() || 'U'}
+                      </AvatarFallback>
+                    </Avatar>
+                  )}
+                </div>
+              ))}
+              
+              {isLoading && (
+                <div className="flex items-start gap-3">
+                  <Avatar>
+                    <AvatarFallback>AI</AvatarFallback>
+                    <AvatarImage src="/doctor-avatar.png" />
+                  </Avatar>
+                  <div className="rounded-lg p-3 bg-muted flex items-center gap-2">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <p>{texts.loading}</p>
+                  </div>
+                </div>
+              )}
             </div>
-          ))}
-          <div ref={messagesEndRef} />
+          )}
         </div>
+        
+        <form onSubmit={handleSubmit} className="flex gap-2">
+          <Textarea 
+            placeholder={texts.placeholderQuestion}
+            value={question}
+            onChange={(e) => setQuestion(e.target.value)}
+            className={cn("resize-none flex-1", language === 'ar' && "text-right")}
+          />
+          <Button type="submit" size="icon" disabled={isLoading || !question.trim()}>
+            <Send className="h-4 w-4" />
+            <span className="sr-only">{texts.askButton}</span>
+          </Button>
+        </form>
       </CardContent>
-      
-      {/* Input area */}
-      <div className="border-t p-4 flex gap-2 items-end">
-        {isPremium && (
-          <span className="text-amber-500 mr-1">
-            <Sparkles className="h-5 w-5" />
-          </span>
-        )}
-        <Textarea 
-          value={newMessage} 
-          onChange={e => setNewMessage(e.target.value)}
-          onKeyDown={handleKeyDown}
-          placeholder={language === 'ar' ? "اكتب رسالتك هنا..." : "Type your message here..."}
-          className={cn("resize-none flex-1", language === 'ar' ? 'text-right' : '')} 
-          rows={1}
-          dir={language === 'ar' ? 'rtl' : 'ltr'}
-        />
-        <Button 
-          onClick={handleSendMessage} 
-          disabled={isLoading || !newMessage.trim()} 
-          size="icon"
-        >
-          {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-        </Button>
-      </div>
     </Card>
   );
 };

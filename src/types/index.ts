@@ -87,3 +87,15 @@ export interface JournalEntry {
   image_url?: string;
   diet_notes?: string;
 }
+
+// Define Json type for Supabase data handling
+export type Json = string | number | boolean | null | { [key: string]: Json } | Json[];
+
+// Define additional page props types for specific pages
+export interface NotFoundProps extends PageProps {}
+export interface JournalProps extends PageProps {}
+export interface RoutinesProps extends PageProps {}
+export interface KnowledgeProps extends PageProps {}
+export interface UpgradeProps extends PageProps {}
+export interface AnalysisDetailProps extends PageProps {}
+export interface SkinAnalysisProps extends PageProps {}
