@@ -13,12 +13,8 @@ import NotFound from './pages/NotFound';
 import Upgrade from './pages/Upgrade';
 import { AuthProvider } from './contexts/AuthContext';
 import { Toaster } from './components/ui/toaster';
+import { PageProps } from './types';
 import './App.css';
-
-// Update the interfaces to ensure all components accept language prop
-interface PageProps {
-  language: 'en' | 'ar';
-}
 
 function App() {
   const [currentLanguage, setCurrentLanguage] = useState<'en' | 'ar'>(
@@ -37,6 +33,15 @@ function App() {
     }
   }, [currentLanguage]);
 
+  // Wrapper components to pass language prop to pages that don't accept it yet
+  const JournalWithLanguage = () => <Journal language={currentLanguage} />;
+  const RoutinesWithLanguage = () => <Routines language={currentLanguage} />;
+  const KnowledgeWithLanguage = () => <Knowledge language={currentLanguage} />;
+  const NotFoundWithLanguage = () => <NotFound language={currentLanguage} />;
+  const UpgradeWithLanguage = () => <Upgrade language={currentLanguage} />;
+  const SkinAnalysisWithLanguage = () => <SkinAnalysis language={currentLanguage} />;
+  const AnalysisDetailWithLanguage = () => <AnalysisDetail language={currentLanguage} />;
+
   return (
     <AuthProvider>
       <div className={`min-h-screen bg-background ${currentLanguage === 'ar' ? 'rtl' : ''}`}>
@@ -45,13 +50,13 @@ function App() {
         <Routes>
           <Route path="/" element={<LandingPage language={currentLanguage} />} />
           <Route path="/dashboard" element={<Dashboard language={currentLanguage} />} />
-          <Route path="/analysis" element={<SkinAnalysis />} />
-          <Route path="/analysis/:id" element={<AnalysisDetail />} />
-          <Route path="/journal" element={<Journal />} />
-          <Route path="/routines" element={<Routines />} />
-          <Route path="/knowledge" element={<Knowledge />} />
-          <Route path="/upgrade" element={<Upgrade />} />
-          <Route path="*" element={<NotFound />} />
+          <Route path="/analysis" element={<SkinAnalysisWithLanguage />} />
+          <Route path="/analysis/:id" element={<AnalysisDetailWithLanguage />} />
+          <Route path="/journal" element={<JournalWithLanguage />} />
+          <Route path="/routines" element={<RoutinesWithLanguage />} />
+          <Route path="/knowledge" element={<KnowledgeWithLanguage />} />
+          <Route path="/upgrade" element={<UpgradeWithLanguage />} />
+          <Route path="*" element={<NotFoundWithLanguage />} />
         </Routes>
         
         <Toaster />

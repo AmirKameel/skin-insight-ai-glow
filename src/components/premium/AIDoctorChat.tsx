@@ -10,19 +10,19 @@ import { getAIDoctorResponse, checkUserPremiumStatus } from '@/services/analysis
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { cn } from '@/lib/utils';
+import { PageProps } from '@/types';
 
 interface Message {
   id: string;
   content: string;
   sender: 'user' | 'ai';
   timestamp: Date;
-  recommendations?: any[];
+  recommendations?: Array<{name: string, type: string}>;
   isLoading?: boolean;
 }
 
-interface AIDoctorChatProps {
+interface AIDoctorChatProps extends PageProps {
   analysisId?: string;
-  language?: 'en' | 'ar';
 }
 
 const AIDoctorChat: React.FC<AIDoctorChatProps> = ({ analysisId, language = 'en' }) => {
@@ -146,7 +146,7 @@ const AIDoctorChat: React.FC<AIDoctorChatProps> = ({ analysisId, language = 'en'
   };
   
   // Format recommendations
-  const renderRecommendations = (recommendations: any[]) => {
+  const renderRecommendations = (recommendations: Array<{name: string, type: string}>) => {
     return (
       <div className="mt-4 space-y-2">
         <h4 className="font-medium text-sm">Recommended Products:</h4>

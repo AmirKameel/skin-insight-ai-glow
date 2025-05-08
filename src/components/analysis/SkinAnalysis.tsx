@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -6,11 +5,12 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Loader2, Upload, Camera, AlertTriangle } from 'lucide-react';
 import { analyzeSkinImage, saveAnalysisToSupabase } from '@/services/analysisService';
-import { SkinAnalysis as SkinAnalysisType } from '@/types';
+import { SkinAnalysis as SkinAnalysisType, PageProps } from '@/types';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
+import { cn } from '@/lib/utils';
 
-const SkinAnalysis = () => {
+const SkinAnalysis: React.FC<PageProps> = ({ language = 'en' }) => {
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -18,6 +18,15 @@ const SkinAnalysis = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { user } = useAuth();
+
+  // Text content based on selected language
+  const texts = {
+    title: language === 'ar' ? 'تحليل البشرة' : 'Skin Analysis',
+    subtitle: language === 'ar' 
+      ? 'قم بتحميل صورة شخصية جيدة الإضاءة للحصول على رؤى للبشرة مدعومة بالذكاء الاصطناعي'
+      : 'Upload a well-lit selfie to receive AI-powered skin insights',
+    // ... add more text translations as needed
+  };
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = event.target.files?.[0];
@@ -30,8 +39,10 @@ const SkinAnalysis = () => {
     if (!selectedFile.type.match('image.*')) {
       toast({
         variant: "destructive",
-        title: "Invalid file type",
-        description: "Please select an image file (JPEG, PNG, etc.)",
+        title: language === 'ar' ? 'نوع ملف غير صالح' : 'Invalid file type',
+        description: language === 'ar' 
+          ? 'الرجاء تحديد ملف صورة (JPEG، PNG، إلخ)'
+          : 'Please select an image file (JPEG, PNG, etc.)',
       });
       return;
     }
@@ -40,8 +51,10 @@ const SkinAnalysis = () => {
     if (selectedFile.size > 10 * 1024 * 1024) {
       toast({
         variant: "destructive",
-        title: "File too large",
-        description: "Please select an image smaller than 10MB",
+        title: language === 'ar' ? 'الملف كبير جدًا' : 'File too large',
+        description: language === 'ar'
+          ? 'الرجاء تحديد صورة أصغر من 10 ميجابايت'
+          : 'Please select an image smaller than 10MB',
       });
       return;
     }
@@ -69,8 +82,10 @@ const SkinAnalysis = () => {
     if (!file) {
       toast({
         variant: "destructive",
-        title: "No image selected",
-        description: "Please upload or capture a photo first",
+        title: language === 'ar' ? 'لم يتم تحديد صورة' : 'No image selected',
+        description: language === 'ar'
+          ? 'يرجى تحميل أو التقاط صورة أولاً'
+          : 'Please upload or capture a photo first',
       });
       return;
     }
@@ -78,8 +93,10 @@ const SkinAnalysis = () => {
     if (!user) {
       toast({
         variant: "destructive",
-        title: "Authentication required",
-        description: "Please log in to analyze your skin",
+        title: language === 'ar' ? 'المصادقة مطلوبة' : 'Authentication required',
+        description: language === 'ar'
+          ? 'يرجى تسجيل الدخول لتحليل بشرتك'
+          : 'Please log in to analyze your skin',
       });
       return;
     }
@@ -93,15 +110,19 @@ const SkinAnalysis = () => {
       setAnalysisResult(savedAnalysis);
       
       toast({
-        title: "Analysis complete",
-        description: "Your skin analysis is ready to view",
+        title: language === 'ar' ? 'اكتمل التحليل' : 'Analysis complete',
+        description: language === 'ar'
+          ? 'تحليل بشرتك جاهز للعرض'
+          : 'Your skin analysis is ready to view',
       });
     } catch (error) {
       console.error('Analysis error:', error);
       toast({
         variant: "destructive",
-        title: "Analysis failed",
-        description: "We couldn't analyze your skin. Please try again.",
+        title: language === 'ar' ? 'فشل التحليل' : 'Analysis failed',
+        description: language === 'ar'
+          ? 'لم نتمكن من تحليل بشرتك. يرجى المحاولة مرة أخرى'
+          : 'We couldn\'t analyze your skin. Please try again.',
       });
     } finally {
       setIsAnalyzing(false);
@@ -117,9 +138,9 @@ const SkinAnalysis = () => {
   return (
     <div className="container mx-auto py-6 px-4 md:px-6 md:ml-64">
       <div className="max-w-3xl mx-auto">
-        <h1 className="text-3xl font-bold mb-2">Skin Analysis</h1>
-        <p className="text-gray-500 mb-6">
-          Upload a well-lit selfie to receive AI-powered skin insights
+        <h1 className={cn("text-3xl font-bold mb-2", language === 'ar' && "text-right")}>{texts.title}</h1>
+        <p className={cn("text-gray-500 mb-6", language === 'ar' && "text-right")}>
+          {texts.subtitle}
         </p>
 
         <Card className="mb-8">
@@ -272,10 +293,14 @@ const SkinAnalysis = () => {
           </CardContent>
         </Card>
 
-        <div className="text-center text-sm text-gray-500">
+        <div className={cn("text-center text-sm text-gray-500", language === 'ar' && "text-right")}>
           <p>
-            Your privacy is important to us. All photos are encrypted and processed securely.{' '}
-            <a href="/privacy" className="text-primary hover:underline">Learn more</a>
+            {language === 'ar' 
+              ? 'خصوصيتك مهمة بالنسبة لنا. جميع الصور مشفرة وتتم معالجتها بشكل آمن.'
+              : 'Your privacy is important to us. All photos are encrypted and processed securely.'}{' '}
+            <a href="/privacy" className="text-primary hover:underline">
+              {language === 'ar' ? 'تعلم المزيد' : 'Learn more'}
+            </a>
           </p>
         </div>
       </div>

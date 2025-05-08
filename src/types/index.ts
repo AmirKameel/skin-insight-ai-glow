@@ -62,3 +62,28 @@ export interface NavigationItem {
   icon?: React.ComponentType<React.SVGAttributes<SVGSVGElement>>;
   current?: boolean;
 }
+
+// Add new interfaces for component props
+export interface PageProps {
+  language?: 'en' | 'ar';
+}
+
+export interface AIDoctorResponse {
+  response: string;
+  recommendations?: Array<{
+    name: string;
+    type: string;
+  }>;
+}
+
+export interface JournalEntry {
+  id: string;
+  user_id: string;
+  date: string;
+  mood: string;
+  notes?: string;
+  sleep_quality?: number;
+  stress_level?: number;
+  image_url?: string;
+  diet_notes?: string;
+}

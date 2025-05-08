@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -12,10 +11,12 @@ import { createJournalEntry, getJournalEntries } from '@/services/analysisServic
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { PageProps } from '@/types';
+import { cn } from '@/lib/utils';
 
 const moods = ['Happy', 'Neutral', 'Stressed', 'Tired', 'Energetic'];
 
-const Journal = () => {
+const Journal: React.FC<PageProps> = ({ language = 'en' }) => {
   const { user } = useAuth();
   const { toast } = useToast();
   const [entries, setEntries] = useState<any[]>([]);
@@ -29,6 +30,16 @@ const Journal = () => {
     image_url: ''
   });
 
+  // Get translation texts
+  const texts = {
+    title: language === 'ar' ? 'مجلة البشرة' : 'Skin Journal',
+    subtitle: language === 'ar' 
+      ? 'تتبع رحلة بشرتك وتحديد الأنماط' 
+      : 'Track your skin\'s journey and identify patterns',
+    newEntry: language === 'ar' ? 'إدخال جديد' : 'New Entry',
+    // ... add more translations as needed
+  };
+  
   useEffect(() => {
     if (user) {
       loadEntries();
@@ -118,13 +129,13 @@ const Journal = () => {
 
   return (
     <div className="container mx-auto py-6 px-4 md:px-6 md:ml-64">
-      <div className="flex justify-between items-center mb-6">
-        <div>
-          <h1 className="text-3xl font-bold mb-1">Skin Journal</h1>
-          <p className="text-gray-500">Track your skin's journey and identify patterns</p>
+      <div className={cn("flex justify-between items-center mb-6", language === 'ar' && "flex-row-reverse")}>
+        <div className={language === 'ar' ? "text-right" : ""}>
+          <h1 className="text-3xl font-bold mb-1">{texts.title}</h1>
+          <p className="text-gray-500">{texts.subtitle}</p>
         </div>
         <Button onClick={() => setIsCreating(true)} className="flex items-center gap-2">
-          <Plus size={18} /> New Entry
+          <Plus size={18} /> {texts.newEntry}
         </Button>
       </div>
 

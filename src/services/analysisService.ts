@@ -1,6 +1,6 @@
 
 import { supabase } from '@/integrations/supabase/client';
-import { SkinAnalysis } from '@/types';
+import { SkinAnalysis, AIDoctorResponse, JournalEntry } from '@/types';
 
 // Get all analyses for a user
 export async function getUserAnalyses(userId: string): Promise<SkinAnalysis[]> {
@@ -21,17 +21,17 @@ export async function getUserAnalyses(userId: string): Promise<SkinAnalysis[]> {
     imageUrl: analysis.image_url || '',
     createdAt: new Date(analysis.created_at),
     detectedIssues: analysis.detected_issues || [],
-    recommendations: analysis.recommendations ? {
-      products: analysis.recommendations.products || [],
-      routines: analysis.recommendations.routines || [],
-      tips: analysis.recommendations.tips || []
+    recommendations: typeof analysis.recommendations === 'object' ? {
+      products: Array.isArray(analysis.recommendations.products) ? analysis.recommendations.products : [],
+      routines: Array.isArray(analysis.recommendations.routines) ? analysis.recommendations.routines : [],
+      tips: Array.isArray(analysis.recommendations.tips) ? analysis.recommendations.tips : []
     } : {
       products: [],
       routines: [],
       tips: []
     },
-    severityScores: analysis.severity_scores || {},
-    aiAnalysisResults: analysis.ai_analysis_results || {}
+    severityScores: typeof analysis.severity_scores === 'object' ? analysis.severity_scores : {},
+    aiAnalysisResults: typeof analysis.ai_analysis_results === 'object' ? analysis.ai_analysis_results : {}
   }));
 }
 
@@ -54,17 +54,17 @@ export async function getAnalysisById(analysisId: string): Promise<SkinAnalysis 
     imageUrl: data.image_url || '',
     createdAt: new Date(data.created_at),
     detectedIssues: data.detected_issues || [],
-    recommendations: data.recommendations ? {
-      products: data.recommendations.products || [],
-      routines: data.recommendations.routines || [],
-      tips: data.recommendations.tips || []
+    recommendations: typeof data.recommendations === 'object' ? {
+      products: Array.isArray(data.recommendations.products) ? data.recommendations.products : [],
+      routines: Array.isArray(data.recommendations.routines) ? data.recommendations.routines : [],
+      tips: Array.isArray(data.recommendations.tips) ? data.recommendations.tips : []
     } : {
       products: [],
       routines: [],
       tips: []
     },
-    severityScores: data.severity_scores || {},
-    aiAnalysisResults: data.ai_analysis_results || {}
+    severityScores: typeof data.severity_scores === 'object' ? data.severity_scores : {},
+    aiAnalysisResults: typeof data.ai_analysis_results === 'object' ? data.ai_analysis_results : {}
   };
 }
 
@@ -169,7 +169,7 @@ export async function trackTreatmentProgress(analysisId: string, solutionIndex: 
   }
 }
 
-// Add missing functions that are imported in other components
+// Add functions for skin image analysis
 export async function analyzeSkinImage(file: File): Promise<any> {
   // Mock implementation for now
   return new Promise((resolve) => {
@@ -244,18 +244,22 @@ export async function saveAnalysisToSupabase(analysis: any, userId: string, file
     imageUrl: data.image_url,
     createdAt: new Date(data.created_at),
     detectedIssues: data.detected_issues || [],
-    recommendations: data.recommendations || {
+    recommendations: typeof data.recommendations === 'object' ? {
+      products: Array.isArray(data.recommendations.products) ? data.recommendations.products : [],
+      routines: Array.isArray(data.recommendations.routines) ? data.recommendations.routines : [],
+      tips: Array.isArray(data.recommendations.tips) ? data.recommendations.tips : []
+    } : {
       products: [],
       routines: [],
       tips: []
     },
-    severityScores: data.severity_scores || {},
-    aiAnalysisResults: data.ai_analysis_results || {}
+    severityScores: typeof data.severity_scores === 'object' ? data.severity_scores : {},
+    aiAnalysisResults: typeof data.ai_analysis_results === 'object' ? data.ai_analysis_results : {}
   };
 }
 
 // Add functions for Journal page
-export async function getJournalEntries(userId: string): Promise<any[]> {
+export async function getJournalEntries(userId: string): Promise<JournalEntry[]> {
   const { data, error } = await supabase
     .from('skin_journal')
     .select('*')
@@ -291,11 +295,18 @@ export async function createJournalEntry(userId: string, entryData: any): Promis
 }
 
 // Add functions for premium features
-export async function getAIDoctorResponse(question: string, userId: string, analysisId?: string): Promise<string> {
+export async function getAIDoctorResponse(userId: string, question: string, analysisId?: string): Promise<AIDoctorResponse> {
   // Mock implementation for now
   return new Promise((resolve) => {
     setTimeout(() => {
-      resolve(`Based on your skin analysis and question about "${question}", I recommend focusing on hydration and gentle exfoliation. Your skin appears to need more moisture, so incorporating a hyaluronic acid serum would be beneficial. For your concern about redness, consider products with centella asiatica or niacinamide.`);
+      resolve({
+        response: `Based on your skin analysis and question about "${question}", I recommend focusing on hydration and gentle exfoliation. Your skin appears to need more moisture, so incorporating a hyaluronic acid serum would be beneficial. For your concern about redness, consider products with centella asiatica or niacinamide.`,
+        recommendations: [
+          { name: "Hyaluronic Acid Serum", type: "Hydration" },
+          { name: "Centella Asiatica Extract", type: "Soothing" },
+          { name: "Niacinamide Serum", type: "Redness Relief" }
+        ]
+      });
     }, 1000);
   });
 }
