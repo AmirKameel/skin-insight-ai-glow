@@ -15,21 +15,10 @@ import { AuthProvider } from './contexts/AuthContext';
 import { Toaster } from './components/ui/toaster';
 import './App.css';
 
-// Create interfaces to ensure all pages accept language prop
+// Update the interfaces to ensure all components accept language prop
 interface PageProps {
   language: 'en' | 'ar';
 }
-
-// Wrap non-compliant components to accept language prop
-const LandingPageWrapper = ({ language }: PageProps) => <LandingPage language={language} />;
-const SkinAnalysisWrapper = ({ language }: PageProps) => <SkinAnalysis language={language} />;
-const AnalysisDetailWrapper = ({ language }: PageProps) => <AnalysisDetail language={language} />;
-const DashboardWrapper = ({ language }: PageProps) => <Dashboard language={language} />;
-const JournalWrapper = ({ language }: PageProps) => <Journal language={language} />;
-const RoutinesWrapper = ({ language }: PageProps) => <Routines language={language} />;
-const KnowledgeWrapper = ({ language }: PageProps) => <Knowledge language={language} />;
-const UpgradeWrapper = ({ language }: PageProps) => <Upgrade language={language} />;
-const NotFoundWrapper = ({ language }: PageProps) => <NotFound language={language} />;
 
 function App() {
   const [currentLanguage, setCurrentLanguage] = useState<'en' | 'ar'>(
@@ -54,15 +43,15 @@ function App() {
         <Navigation language={currentLanguage} setLanguage={setCurrentLanguage} />
         
         <Routes>
-          <Route path="/" element={<LandingPageWrapper language={currentLanguage} />} />
-          <Route path="/dashboard" element={<DashboardWrapper language={currentLanguage} />} />
-          <Route path="/analysis" element={<SkinAnalysisWrapper language={currentLanguage} />} />
-          <Route path="/analysis/:id" element={<AnalysisDetailWrapper language={currentLanguage} />} />
-          <Route path="/journal" element={<JournalWrapper language={currentLanguage} />} />
-          <Route path="/routines" element={<RoutinesWrapper language={currentLanguage} />} />
-          <Route path="/knowledge" element={<KnowledgeWrapper language={currentLanguage} />} />
-          <Route path="/upgrade" element={<UpgradeWrapper language={currentLanguage} />} />
-          <Route path="*" element={<NotFoundWrapper language={currentLanguage} />} />
+          <Route path="/" element={<LandingPage language={currentLanguage} />} />
+          <Route path="/dashboard" element={<Dashboard language={currentLanguage} />} />
+          <Route path="/analysis" element={<SkinAnalysis />} />
+          <Route path="/analysis/:id" element={<AnalysisDetail />} />
+          <Route path="/journal" element={<Journal />} />
+          <Route path="/routines" element={<Routines />} />
+          <Route path="/knowledge" element={<Knowledge />} />
+          <Route path="/upgrade" element={<Upgrade />} />
+          <Route path="*" element={<NotFound />} />
         </Routes>
         
         <Toaster />
