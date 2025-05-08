@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -20,7 +19,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
-import { useMobile } from '@/hooks/use-mobile';
+import { useIsMobile } from '@/hooks/use-mobile';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { checkUserPremiumStatus } from '@/services/analysisService';
@@ -31,11 +30,11 @@ interface NavigationProps {
 }
 
 const Navigation = ({ language = 'en', setLanguage }: NavigationProps) => {
-  const { user, signOut } = useAuth();
+  const { user, logout } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
   const location = useLocation();
-  const isMobile = useMobile();
+  const isMobile = useIsMobile();
   const [isPremium, setIsPremium] = useState<boolean | null>(null);
   const [open, setOpen] = useState(false);
 
@@ -55,7 +54,7 @@ const Navigation = ({ language = 'en', setLanguage }: NavigationProps) => {
 
   const handleSignOut = async () => {
     try {
-      await signOut();
+      await logout();
       navigate('/');
       toast({
         title: language === 'ar' ? "تم تسجيل الخروج بنجاح" : "Signed out successfully",

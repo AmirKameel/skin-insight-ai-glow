@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ArrowLeft, Calendar, Download, Share2, AlertTriangle, Star, LockKeyhole, CheckCircle } from 'lucide-react';
-import { getAnalysisById, getPremiumRecommendations, trackTreatmentProgress } from '@/services/analysisService';
+import { getAnalysisById, getPremiumRecommendations, trackTreatmentProgress, checkUserPremiumStatus } from '@/services/analysisService';
 import { SkinAnalysis } from '@/types';
 import { useToast } from '@/hooks/use-toast';
 import { Progress } from '@/components/ui/progress';
@@ -12,7 +12,11 @@ import { useAuth } from '@/contexts/AuthContext';
 import TreatmentPlan from './TreatmentPlan';
 import DermatologistFeedback from './DermatologistFeedback';
 
-const AnalysisDetail = () => {
+interface AnalysisDetailProps {
+  language?: 'en' | 'ar';
+}
+
+const AnalysisDetail = ({ language = 'en' }: AnalysisDetailProps) => {
   const { id } = useParams<{ id: string }>();
   const [analysis, setAnalysis] = useState<SkinAnalysis | null>(null);
   const [loading, setLoading] = useState(true);
@@ -20,9 +24,32 @@ const AnalysisDetail = () => {
   const [loadingPremium, setLoadingPremium] = useState(false);
   const [selectedSolution, setSelectedSolution] = useState<number | null>(null);
   const [treatmentStarted, setTreatmentStarted] = useState(false);
+  const [isPremiumUser, setIsPremiumUser] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
   const { user } = useAuth();
+
+  // Check premium status
+  useEffect(() => {
+    const checkPremiumStatus = async () => {
+      if (!user?.id) return;
+      
+      try {
+        const isPremium = await checkUserPremiumStatus(user.id);
+        setIsPremiumUser(isPremium);
+        console.log("User premium status:", isPremium);
+        
+        // If premium, load premium content right away
+        if (isPremium && id) {
+          loadPremiumContent();
+        }
+      } catch (error) {
+        console.error('Error checking premium status:', error);
+      }
+    };
+    
+    checkPremiumStatus();
+  }, [user, id]);
 
   useEffect(() => {
     const fetchAnalysis = async () => {
@@ -36,8 +63,10 @@ const AnalysisDetail = () => {
         } else {
           toast({
             variant: "destructive",
-            title: "Not found",
-            description: "The requested analysis could not be found.",
+            title: language === 'ar' ? "غير موجود" : "Not found",
+            description: language === 'ar' 
+              ? "لم يتم العثور على التحليل المطلوب."
+              : "The requested analysis could not be found.",
           });
           navigate('/dashboard');
         }
@@ -45,8 +74,10 @@ const AnalysisDetail = () => {
         console.error('Error fetching analysis:', error);
         toast({
           variant: "destructive",
-          title: "Error",
-          description: "Failed to load analysis details.",
+          title: language === 'ar' ? "خطأ" : "Error",
+          description: language === 'ar'
+            ? "فشل في تحميل تفاصيل التحليل."
+            : "Failed to load analysis details.",
         });
       } finally {
         setLoading(false);
@@ -54,27 +85,10 @@ const AnalysisDetail = () => {
     };
     
     fetchAnalysis();
-  }, [id, navigate, toast]);
+  }, [id, navigate, toast, language]);
 
   const loadPremiumContent = async () => {
     if (!id || !user) return;
-    
-    // Check if user is premium - this would normally check subscription status
-    const isPremiumUser = user.email?.includes('premium');
-    
-    if (!isPremiumUser) {
-      // Show upgrade prompt
-      toast({
-        title: "Premium Feature",
-        description: "Upgrade to Premium for advanced product recommendations, personalized treatment plans, and AI dermatologist consultations.",
-        action: (
-          <Button onClick={() => navigate('/upgrade')} variant="default" size="sm">
-            Upgrade Now
-          </Button>
-        ),
-      });
-      return;
-    }
     
     try {
       setLoadingPremium(true);
@@ -84,8 +98,10 @@ const AnalysisDetail = () => {
       console.error('Error loading premium content:', error);
       toast({
         variant: "destructive",
-        title: "Error",
-        description: "Failed to load premium recommendations.",
+        title: language === 'ar' ? "خطأ" : "Error",
+        description: language === 'ar'
+          ? "فشل في تحميل التوصيات المميزة."
+          : "Failed to load premium recommendations.",
       });
     } finally {
       setLoadingPremium(false);
@@ -101,8 +117,10 @@ const AnalysisDetail = () => {
       setTreatmentStarted(true);
       
       toast({
-        title: "Treatment Plan Started",
-        description: "We'll help you track your progress with this treatment plan",
+        title: language === 'ar' ? "تم بدء خطة العلاج" : "Treatment Plan Started",
+        description: language === 'ar'
+          ? "سنساعدك في تتبع تقدمك مع خطة العلاج هذه"
+          : "We'll help you track your progress with this treatment plan",
       });
       
       // In a real app, we'd save this to the database
@@ -112,8 +130,10 @@ const AnalysisDetail = () => {
       console.error('Error starting treatment:', error);
       toast({
         variant: "destructive",
-        title: "Error",
-        description: "Failed to start treatment plan.",
+        title: language === 'ar' ? "خطأ" : "Error",
+        description: language === 'ar'
+          ? "فشل في بدء خطة العلاج."
+          : "Failed to start treatment plan.",
       });
     }
   };
@@ -136,7 +156,7 @@ const AnalysisDetail = () => {
   };
 
   const formatDate = (date: Date) => {
-    return new Intl.DateTimeFormat('en-US', {
+    return new Intl.DateTimeFormat(language === 'ar' ? 'ar-EG' : 'en-US', {
       year: 'numeric',
       month: 'long',
       day: 'numeric',
@@ -152,7 +172,9 @@ const AnalysisDetail = () => {
           <div className="inline-flex items-center justify-center p-4 bg-skin-blue/20 rounded-full mb-4">
             <div className="h-8 w-8 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
           </div>
-          <h3 className="text-lg font-medium">Loading analysis details...</h3>
+          <h3 className="text-lg font-medium">
+            {language === 'ar' ? "جاري تحميل تفاصيل التحليل..." : "Loading analysis details..."}
+          </h3>
         </div>
       </div>
     );
@@ -165,8 +187,12 @@ const AnalysisDetail = () => {
           <div className="inline-flex items-center justify-center p-4 bg-red-100 rounded-full mb-4">
             <div className="w-8 h-8 rounded-full bg-red-500 flex items-center justify-center text-white">!</div>
           </div>
-          <h3 className="text-lg font-medium mb-4">Analysis not found</h3>
-          <Button onClick={() => navigate('/dashboard')}>Return to Dashboard</Button>
+          <h3 className="text-lg font-medium mb-4">
+            {language === 'ar' ? "لم يتم العثور على التحليل" : "Analysis not found"}
+          </h3>
+          <Button onClick={() => navigate('/dashboard')}>
+            {language === 'ar' ? "العودة إلى لوحة التحكم" : "Return to Dashboard"}
+          </Button>
         </div>
       </div>
     );
@@ -178,17 +204,19 @@ const AnalysisDetail = () => {
         <div className="flex items-center mb-6">
           <Button variant="ghost" onClick={() => navigate(-1)} className="mr-4">
             <ArrowLeft className="mr-2 h-4 w-4" />
-            Back
+            {language === 'ar' ? "رجوع" : "Back"}
           </Button>
-          <h1 className="text-2xl md:text-3xl font-bold flex-1">Analysis Results</h1>
+          <h1 className="text-2xl md:text-3xl font-bold flex-1">
+            {language === 'ar' ? "نتائج التحليل" : "Analysis Results"}
+          </h1>
           <div className="flex gap-2">
             <Button variant="outline" size="sm">
               <Download className="mr-2 h-4 w-4" />
-              Export
+              {language === 'ar' ? "تصدير" : "Export"}
             </Button>
             <Button variant="outline" size="sm">
               <Share2 className="mr-2 h-4 w-4" />
-              Share
+              {language === 'ar' ? "مشاركة" : "Share"}
             </Button>
           </div>
         </div>
@@ -202,8 +230,8 @@ const AnalysisDetail = () => {
           {/* Image Column */}
           <Card className="lg:col-span-1">
             <CardHeader>
-              <CardTitle>Your Skin Image</CardTitle>
-              <CardDescription>Analyzed photo</CardDescription>
+              <CardTitle>{language === 'ar' ? "صورة البشرة" : "Your Skin Image"}</CardTitle>
+              <CardDescription>{language === 'ar' ? "الصورة التي تم تحليلها" : "Analyzed photo"}</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="relative aspect-square rounded-lg overflow-hidden border">
@@ -247,19 +275,32 @@ const AnalysisDetail = () => {
           {/* Analysis Column */}
           <Card className="lg:col-span-2">
             <CardHeader>
-              <CardTitle>AI Analysis Results</CardTitle>
-              <CardDescription>Comprehensive skin assessment</CardDescription>
+              <CardTitle>
+                {language === 'ar' ? "نتائج تحليل الذكاء الاصطناعي" : "AI Analysis Results"}
+              </CardTitle>
+              <CardDescription>
+                {language === 'ar' ? "تقييم شامل للبشرة" : "Comprehensive skin assessment"}
+              </CardDescription>
             </CardHeader>
             <CardContent>
               <Tabs defaultValue="summary" className="w-full">
                 <TabsList className="mb-6">
-                  <TabsTrigger value="summary">Summary</TabsTrigger>
-                  <TabsTrigger value="issues">Issues</TabsTrigger>
-                  <TabsTrigger value="recommendations">Recommendations</TabsTrigger>
-                  <TabsTrigger value="treatment">
-                    <Star className="w-4 h-4 mr-1" /> Treatment Plan
+                  <TabsTrigger value="summary">
+                    {language === 'ar' ? "ملخص" : "Summary"}
                   </TabsTrigger>
-                  <TabsTrigger value="dermatologist">AI Doctor</TabsTrigger>
+                  <TabsTrigger value="issues">
+                    {language === 'ar' ? "المشاكل" : "Issues"}
+                  </TabsTrigger>
+                  <TabsTrigger value="recommendations">
+                    {language === 'ar' ? "التوصيات" : "Recommendations"}
+                  </TabsTrigger>
+                  <TabsTrigger value="treatment">
+                    <Star className="w-4 h-4 mr-1" /> 
+                    {language === 'ar' ? "خطة العلاج" : "Treatment Plan"}
+                  </TabsTrigger>
+                  <TabsTrigger value="dermatologist">
+                    {language === 'ar' ? "الطبيب الذكي" : "AI Doctor"}
+                  </TabsTrigger>
                 </TabsList>
                 
                 <TabsContent value="summary" className="space-y-6">
@@ -381,18 +422,23 @@ const AnalysisDetail = () => {
                 </TabsContent>
                 
                 <TabsContent value="treatment" className="space-y-6">
-                  {!premiumData && !loadingPremium ? (
+                  {!isPremiumUser && !premiumData && !loadingPremium ? (
                     <div className="text-center py-12">
                       <div className="inline-flex items-center justify-center p-4 bg-amber-50 rounded-full mb-4">
                         <LockKeyhole size={24} className="text-amber-600" />
                       </div>
-                      <h3 className="text-lg font-medium mb-2">Premium Treatment Plans</h3>
+                      <h3 className="text-lg font-medium mb-2">
+                        {language === 'ar' ? "خطط العلاج المتميزة" : "Premium Treatment Plans"}
+                      </h3>
                       <p className="text-gray-600 max-w-md mx-auto mb-6">
-                        Get personalized treatment plans, progress tracking, and periodic checkups with our AI dermatologist to effectively address your specific skin concerns.
+                        {language === 'ar' 
+                          ? "احصل على خطط علاج مخصصة وتتبع التقدم وفحوصات دورية مع طبيب الجلدية الذكي لمعالجة مشاكل البشرة الخاصة بك بفعالية."
+                          : "Get personalized treatment plans, progress tracking, and periodic checkups with our AI dermatologist to effectively address your specific skin concerns."
+                        }
                       </p>
-                      <Button onClick={loadPremiumContent}>
+                      <Button onClick={() => navigate('/upgrade')}>
                         <Star className="mr-2 h-4 w-4" /> 
-                        Unlock Premium Features
+                        {language === 'ar' ? "ترقية للحصول على المميزات" : "Upgrade for Premium Features"}
                       </Button>
                     </div>
                   ) : loadingPremium ? (
@@ -400,31 +446,40 @@ const AnalysisDetail = () => {
                       <div className="inline-flex items-center justify-center p-4 bg-skin-blue/20 rounded-full mb-4">
                         <div className="h-8 w-8 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
                       </div>
-                      <h3 className="text-lg font-medium">Loading treatment plans...</h3>
+                      <h3 className="text-lg font-medium">
+                        {language === 'ar' ? "جاري تحميل خطط العلاج..." : "Loading treatment plans..."}
+                      </h3>
                     </div>
                   ) : (
                     <TreatmentPlan 
+                      analysisId={id || ''}
                       premiumData={premiumData} 
                       selectedSolution={selectedSolution}
                       treatmentStarted={treatmentStarted}
                       onSelectSolution={startTreatment}
+                      language={language}
                     />
                   )}
                 </TabsContent>
                 
                 <TabsContent value="dermatologist" className="space-y-6">
-                  {!premiumData && !loadingPremium ? (
+                  {!isPremiumUser && !premiumData && !loadingPremium ? (
                     <div className="text-center py-12">
                       <div className="inline-flex items-center justify-center p-4 bg-amber-50 rounded-full mb-4">
                         <LockKeyhole size={24} className="text-amber-600" />
                       </div>
-                      <h3 className="text-lg font-medium mb-2">AI Dermatologist</h3>
+                      <h3 className="text-lg font-medium mb-2">
+                        {language === 'ar' ? "طبيب الجلدية الذكي" : "AI Dermatologist"}
+                      </h3>
                       <p className="text-gray-600 max-w-md mx-auto mb-6">
-                        Get in-depth analysis from our AI dermatologist that provides expert-level insights about your skin condition, potential underlying causes, and personalized treatment options.
+                        {language === 'ar'
+                          ? "احصل على تحليل متعمق من طبيب الجلدية الذكي الذي يقدم رؤى على مستوى الخبراء حول حالة بشرتك والأسباب المحتملة وخيارات العلاج الشخصية."
+                          : "Get in-depth analysis from our AI dermatologist that provides expert-level insights about your skin condition, potential underlying causes, and personalized treatment options."
+                        }
                       </p>
-                      <Button onClick={loadPremiumContent}>
+                      <Button onClick={() => navigate('/upgrade')}>
                         <Star className="mr-2 h-4 w-4" /> 
-                        Unlock Premium Features
+                        {language === 'ar' ? "ترقية للحصول على المميزات" : "Upgrade for Premium Features"}
                       </Button>
                     </div>
                   ) : loadingPremium ? (
@@ -432,12 +487,15 @@ const AnalysisDetail = () => {
                       <div className="inline-flex items-center justify-center p-4 bg-skin-blue/20 rounded-full mb-4">
                         <div className="h-8 w-8 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
                       </div>
-                      <h3 className="text-lg font-medium">Consulting with AI dermatologist...</h3>
+                      <h3 className="text-lg font-medium">
+                        {language === 'ar' ? "جاري الاستشارة مع طبيب الجلدية الذكي..." : "Consulting with AI dermatologist..."}
+                      </h3>
                     </div>
                   ) : (
                     <DermatologistFeedback 
                       analysis={analysis}
                       premiumData={premiumData}
+                      language={language}
                     />
                   )}
                 </TabsContent>

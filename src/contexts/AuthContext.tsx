@@ -12,7 +12,7 @@ interface AuthContextType {
   error: string | null;
   login: (email: string, password: string) => Promise<void>;
   register: (email: string, password: string, firstName?: string, lastName?: string) => Promise<void>;
-  logout: () => Promise<void>;
+  logout: () => Promise<void>; // Changed from signOut to logout for consistency
   setUser: (user: AppUser | null) => void;
 }
 
