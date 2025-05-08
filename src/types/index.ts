@@ -91,6 +91,13 @@ export interface JournalEntry {
 // Define Json type for Supabase data handling
 export type Json = string | number | boolean | null | { [key: string]: Json } | Json[];
 
+// Define recommendation format to match the database structure
+export interface RecommendationsFormat {
+  products?: string[];
+  routines?: string[];
+  tips?: string[];
+}
+
 // Define additional page props types for specific pages
 export interface NotFoundProps extends PageProps {}
 export interface JournalProps extends PageProps {}
@@ -99,3 +106,5 @@ export interface KnowledgeProps extends PageProps {}
 export interface UpgradeProps extends PageProps {}
 export interface AnalysisDetailProps extends PageProps {}
 export interface SkinAnalysisProps extends PageProps {}
+export interface IndexProps extends PageProps {}
+export interface LandingPageProps extends PageProps {}

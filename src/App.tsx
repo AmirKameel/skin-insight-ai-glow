@@ -21,7 +21,8 @@ import {
   RoutinesProps, 
   KnowledgeProps,
   NotFoundProps,
-  UpgradeProps
+  UpgradeProps,
+  LandingPageProps
 } from './types';
 import './App.css';
 

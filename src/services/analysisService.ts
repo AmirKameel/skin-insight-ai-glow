@@ -1,6 +1,52 @@
 
 import { supabase } from '@/integrations/supabase/client';
-import { SkinAnalysis, AIDoctorResponse, JournalEntry, Json } from '@/types';
+import { SkinAnalysis, AIDoctorResponse, JournalEntry, Json, RecommendationsFormat } from '@/types';
+
+// Helper function to safely parse recommendations from JSON
+function parseRecommendations(data: any): RecommendationsFormat {
+  try {
+    if (!data) return { products: [], routines: [], tips: [] };
+    
+    // If data is an object with the expected structure
+    if (typeof data === 'object' && data !== null) {
+      return {
+        products: Array.isArray(data.products) ? data.products : [],
+        routines: Array.isArray(data.routines) ? data.routines : [],
+        tips: Array.isArray(data.tips) ? data.tips : []
+      };
+    }
+    return { products: [], routines: [], tips: [] };
+  } catch (e) {
+    console.error('Error parsing recommendations:', e);
+    return { products: [], routines: [], tips: [] };
+  }
+}
+
+// Helper function to safely parse severity scores from JSON
+function parseSeverityScores(data: any): Record<string, number> {
+  try {
+    if (!data) return {};
+    
+    // If data is an object
+    if (typeof data === 'object' && data !== null) {
+      const result: Record<string, number> = {};
+      
+      // Only include properties that can be converted to numbers
+      Object.entries(data).forEach(([key, value]) => {
+        const numValue = Number(value);
+        if (!isNaN(numValue)) {
+          result[key] = numValue;
+        }
+      });
+      
+      return result;
+    }
+    return {};
+  } catch (e) {
+    console.error('Error parsing severity scores:', e);
+    return {};
+  }
+}
 
 // Get all analyses for a user
 export async function getUserAnalyses(userId: string): Promise<SkinAnalysis[]> {
@@ -21,16 +67,8 @@ export async function getUserAnalyses(userId: string): Promise<SkinAnalysis[]> {
     imageUrl: analysis.image_url || '',
     createdAt: new Date(analysis.created_at),
     detectedIssues: analysis.detected_issues || [],
-    recommendations: {
-      products: Array.isArray(analysis.recommendations?.products) ? analysis.recommendations.products : [],
-      routines: Array.isArray(analysis.recommendations?.routines) ? analysis.recommendations.routines : [],
-      tips: Array.isArray(analysis.recommendations?.tips) ? analysis.recommendations.tips : []
-    },
-    severityScores: typeof analysis.severity_scores === 'object' ? 
-      Object.fromEntries(
-        Object.entries(analysis.severity_scores || {})
-          .map(([key, value]) => [key, typeof value === 'number' ? value : 0])
-      ) : {},
+    recommendations: parseRecommendations(analysis.recommendations),
+    severityScores: parseSeverityScores(analysis.severity_scores),
     aiAnalysisResults: typeof analysis.ai_analysis_results === 'object' ? analysis.ai_analysis_results : {}
   }));
 }
@@ -54,16 +92,8 @@ export async function getAnalysisById(analysisId: string): Promise<SkinAnalysis 
     imageUrl: data.image_url || '',
     createdAt: new Date(data.created_at),
     detectedIssues: data.detected_issues || [],
-    recommendations: {
-      products: Array.isArray(data.recommendations?.products) ? data.recommendations.products : [],
-      routines: Array.isArray(data.recommendations?.routines) ? data.recommendations.routines : [],
-      tips: Array.isArray(data.recommendations?.tips) ? data.recommendations.tips : []
-    },
-    severityScores: typeof data.severity_scores === 'object' ? 
-      Object.fromEntries(
-        Object.entries(data.severity_scores || {})
-          .map(([key, value]) => [key, typeof value === 'number' ? value : 0])
-      ) : {},
+    recommendations: parseRecommendations(data.recommendations),
+    severityScores: parseSeverityScores(data.severity_scores),
     aiAnalysisResults: typeof data.ai_analysis_results === 'object' ? data.ai_analysis_results : {}
   };
 }
@@ -244,16 +274,8 @@ export async function saveAnalysisToSupabase(analysis: any, userId: string, file
     imageUrl: data.image_url,
     createdAt: new Date(data.created_at),
     detectedIssues: data.detected_issues || [],
-    recommendations: {
-      products: Array.isArray(data.recommendations?.products) ? data.recommendations.products : [],
-      routines: Array.isArray(data.recommendations?.routines) ? data.recommendations.routines : [],
-      tips: Array.isArray(data.recommendations?.tips) ? data.recommendations.tips : []
-    },
-    severityScores: typeof data.severity_scores === 'object' ? 
-      Object.fromEntries(
-        Object.entries(data.severity_scores || {})
-          .map(([key, value]) => [key, typeof value === 'number' ? value : 0])
-      ) : {},
+    recommendations: parseRecommendations(data.recommendations),
+    severityScores: parseSeverityScores(data.severity_scores),
     aiAnalysisResults: typeof data.ai_analysis_results === 'object' ? data.ai_analysis_results : {}
   };
 }
